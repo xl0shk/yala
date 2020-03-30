@@ -1,0 +1,52 @@
+<header class="main-header">
+    <a href="{{ url_for('index.index') }}" class="logo">
+        <span class="logo-mini">Yala</span>
+        <span class="logo-lg"><b>Yala-运维平台</b></span>
+    </a>
+    <nav class="navbar navbar-static-top" id="navbar_user">
+        <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
+            <span class="sr-only">Toggle navigation</span>
+        </a>
+        <div class="navbar-custom-menu">
+            <ul class="nav navbar-nav">
+                {% if current_user.is_authenticated %}
+                    <li class="dropdown user user-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            {% if current_user.role.name == 'Admin' %}
+                                <img src="{{ url_for('static', filename='image/avatar3.png') }}" class="user-image" alt="User Image">
+                            {% elif current_user.role.name == 'Ops' %}
+                                <img src="{{ url_for('static', filename='image/avatar2.png') }}" class="user-image" alt="User Image">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='image/avatar1.png') }}" class="user-image" alt="User Image">
+                            {% endif %}
+                            <span class="hidden-xs">{{ current_user.name }}</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="user-header">
+                                {% if current_user.role.name == 'Admin' %}
+                                    <img src="{{ url_for('static', filename='image/avatar3.png') }}" class="img-circle" alt="User Image">
+                                {% elif current_user.role.name == 'Ops' %}
+                                    <img src="{{ url_for('static', filename='image/avatar2.png') }}" class="img-circle" alt="User Image">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='image/avatar1.png') }}" class="img-circle" alt="User Image">
+                                {% endif %}
+                                <p>
+                                    {{ current_user.name }} - {{ current_user.role.name }}
+                                </p>
+                            </li>
+                            <li class="user-footer">
+                                <div class="pull-left">
+                                    <span> <p style="font-size: 14px"> 密码修改请到LDAP系统 </p> </span>
+                                </div>
+                                <div class="pull-right"><a href="{{ url_for('auth.auth_logout') }}" class="btn btn-default btn-flat">退出</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li><a href="{{ url_for('auth.auth_login') }}">登录</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+</header>

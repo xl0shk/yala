@@ -1,0 +1,15 @@
+bin
+include
+lib
+share
+__pycache__
+.Python
+*.pyc
+*.log
+.settings
+.project
+.pydevproject
+.DS_Store
+venv
+.idea/
+logs/

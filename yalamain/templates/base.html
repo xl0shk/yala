@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <title>Yala</title>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <link href="{{ url_for('static',filename='css/bootstrap.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/font-awesome.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/ionicons.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/select2.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/ztree/awesomeStyle/awesome.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/ztree-style.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/AdminLTE.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/_all-skins.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/morris.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/jquery-jvectormap.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/bootstrap-datepicker.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/daterangepicker.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/bootstrap3-wysihtml5.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/bootstrap-multiselect.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/sweetalert2.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/tablesorter.theme.default.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static',filename='css/bootstrap-table.min.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='css/fakeLoader.css') }}" rel="stylesheet">
+    <link rel="shortcut icon" href="{{ url_for('static',filename='image/favicon.ico') }}" type="image/x-icon">
+    <style>
+        .modal-backdrop {
+            z-index: auto;
+        }
+
+        .input-group .form-control {
+            z-index: auto;
+        }
+
+        .input-group-btn:last-child > .btn {
+            z-index: auto;
+        }
+
+        .pagination > .active > a {
+            z-index: auto;
+        }
+
+        .select2-container--open {
+            z-index: 9999999 !important;
+        }
+
+        .main-sidebar {
+            z-index: auto;
+        }
+    </style>
+    {% block header_css %}
+    {% endblock %}
+</head>
+
+<body class="hold-transition skin-blue sidebar-mini">
+<div class="wrapper" style="padding:0px">
+    {% include 'main-header.html' %}
+    {% include 'main-sidebar.html' %}
+
+    {% block content %}
+    {% endblock %}
+
+    {% include 'footer.html' %}
+</div>
+
+<script src="{{ url_for('static',filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery-ui.min.js') }}"></script>
+<script>
+    $.widget.bridge('uibutton', $.ui.button);
+</script>
+<script src="{{ url_for('static',filename='js/bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/select2.full.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/dataTables.bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/raphael.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/morris.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.sparkline.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery-jvectormap-1.2.2.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery-jvectormap-world-mill-en.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.knob.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/moment.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/daterangepicker.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-datepicker.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap3-wysihtml5.all.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.slimscroll.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/fastclick.js') }}"></script>
+<script src="{{ url_for('static',filename='js/sweetalert2.all.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/vue.js') }}"></script>
+<script src="{{ url_for('static',filename='js/WdatePicker.js') }}"></script>
+<script src="{{ url_for('static',filename='js/spin.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/ladda.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.tablesorter.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.tablesorter.widgets.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.form.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-notify.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-multiselect.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-table.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-table-zh-CN.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/colResizable-1.6.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-table-resizable.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/ztree/jquery.ztree.all.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.cookie.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap-table-maintainColSwitch.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/adminlte.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/fakeLoader.js') }}"></script>
+
+<script>
+    Vue.config.delimiters = ['${', '}']
+    Vue.config.unsafeDelimiters = ['{!!', '!!}']
+
+    data = {
+        new_password: '',
+        new_password2: '',
+        errMsg: ''
+    };
+
+    new Vue({
+        el: '#navbar_user',
+        data: data,
+        methods: {}
+    });
+
+</script>
+{% block bottom_js %}
+{% endblock %}
+</body>
+</html>

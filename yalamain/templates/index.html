@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% import "page.html" as page %}
+{% block content %}
+    <div id="index" class="content-wrapper list">
+        <section class="content-header">
+            <h1>
+                首页
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+                <li class="active">Dashboard</li>
+            </ol>
+        </section>
+        <section class="content">
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-title">
+                            <span class="label label-success pull-right">Hosts</span>
+                            <h5>主机总数</h5>
+                        </div>
+                        <div class="ibox-content">
+                            <h1 class="no-margins"><a a href="{{ url_for('assets.assets_host') }}">{{ host_count }}</a></h1>
+                            <small>All hosts</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-title">
+                            <span class="label label-info pull-right">Domain</span>
+                            <h5>监控域名管理</h5>
+                        </div>
+                        <div class="ibox-content">
+                            <h1 class="no-margins"><a href="{{ url_for('monitor.monitor_domain') }}">{{ monitor_domain_count }} </a></h1>
+                            <small>Monitor domain</small>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="col-sm-3">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-title">
+                            <span class="label label-primary pull-right">Probe</span>
+                            <h5>监控端口管理</h5>
+                        </div>
+                        <div class="ibox-content">
+                            <h1 class="no-margins"><a href="{{ url_for('monitor.monitor_tcp_connect_probe') }}">{{  monitor_probe_count  }}</a></h1>
+                            <small>Monitor count</small>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="col-sm-3">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-title">
+                            <span class="label label-danger pull-right">Users</span>
+                            <h5>用户管理</h5>
+                        </div>
+                        <div class="ibox-content">
+                                <h1 class="no-margins"><a href="{{ url_for('user.user_user') }}"> <span id="users_count"></span>{{  users_count  }}</a></h1>
+                            <small>All users</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box box-info">
+                        <div class="box-header with-border">
+                            <h3 class="box-title"> 数据趋势图 </h3>
+
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="box-body chart-responsive">
+                            <div class="chart" id="line-chart" style="height: 300px;"></div>
+                        </div>
+                        <!-- /.box-body -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </div>
+{% endblock %}
+
+{% block bottom_js %}
+    <script>
+        $(function () {
+            let line = new Morris.Line({
+                element: 'line-chart',
+                resize: true,              
+                data: {{ chart_list }},
+                xkey: 'update_date',
+                ykeys: ['host', 'domain', 'probe', 'users'],
+                labels: ['host', 'domain', 'probe', 'users'],
+                lineColors: ['#3c8dbc', '#00a65a', '#22b882', '#03365a'],
+                xlabels: 'day',                
+                hideHover: 'auto',
+                gridTextSize: 12, // 设置横坐标字体大小，再大最后一格就显示不出来了
+                xLabelFormat: function (update_date) {
+                     return update_date.getMonth()+'-'+update_date.getDate();
+                },
+                /*设置横坐标显示格式为月-日*/
+            });
+        });
+
+        window.onload = function () {
+
+        };
+
+        data = {
+            errMsg: '',
+        };
+
+        new Vue({
+            el: '.list',
+            data: data,
+            methods: {}
+        })
+    </script>
+
+{% endblock %}

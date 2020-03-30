@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "page.html" as page %}
+{% block content %}
+    <div id="building" class="content-wrapper list">
+        <section class="content-header">
+            <p style="font-size: xx-large">
+                ChangeLog
+            </p>
+        </section>
+        <section class="content">
+            <div class="row" align="left" v-for="log in changelog" style="margin-top: 20px; margin-left: 15px;">
+                <div style="border-bottom: 1px solid #ccc; width: 60%; height: auto; padding-bottom: 20px;">
+                    <h2>
+                    [[ log.version ]]
+                    </h2>
+                    <p  v-for = "detailItem in log.details">[[ detailItem ]]</p>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
+
+{% block bottom_js %}
+    <script>
+        dataLog = {
+            errMsg: '',
+            changelog: [],
+        };
+        Vue.config.delimiters = ['[[', ']]'];
+        window.onload = function () {
+            $.ajax({
+                   url : "ChangeLog.md",
+                   dataType: "text",
+                   success : function (data) {
+                       console.log(data);
+                       let logs = data.split('##');
+                       for (let i = logs.length - 1; i > 0; i--) {
+                           let log1 = logs[i];
+                           if (log1 !== "") {
+                               let logArray = log1.split('\n');
+                               let logDetails1 = [];
+                               for (let j = 1; j < logArray.length; j++) {
+                                   if (logArray[j] !== "") {
+                                       logDetails1.push(logArray[j]);
+                                   }
+                               }
+                                   let logDetails = {
+                                       "version": logArray[0],
+                                       "details": logDetails1,
+                                   };
+                                   dataLog.changelog.push(logDetails);
+                               }
+                           }
+                       }
+                   });
+            $(document).ready(function() {
+
+            });
+        };
+
+        new Vue({
+            el: '.list',
+            data: dataLog,
+            methods: {}
+        })
+    </script>
+{% endblock %}

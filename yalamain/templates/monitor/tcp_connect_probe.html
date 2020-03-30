@@ -1,0 +1,623 @@
+{% extends "base.html" %}
+{% import "page.html" as page %}
+
+{% block content %}
+    <div class="content-wrapper monitorTcpConnectProbe">
+        <section class="content-header">
+            <h1>
+                服务端口监控列表
+                <small>
+                    {% if current_user.role.name in ['Admin', 'Ops'] %}
+                        <button type="button" class="btn btn-success btn-xs" data-target=".create-monitor-tcp-connect-probe-modal"
+                                data-toggle="modal"> 添加服务端口监控
+                        </button>
+                    {% endif %}
+                </small>
+            </h1>
+
+            <!-- create-domain-modal -->
+            <div class="modal fade create-monitor-tcp-connect-probe-modal" tabindex="-1" role="dialog"
+                 aria-labelledby="tcpConnectProbeModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span></button>
+                            <h4 class="modal-title" id="tcpConnectProbeModalLabel">添加服务端口监控</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form class="form-horizontal">
+                                <div class="form-group">
+                                    <label for="monitorServiceName" class="col-sm-3 control-label"> 监控服务名称 </label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="monitorServiceName"
+                                               placeholder="请正确填写服务名称，比如：admin, crm-web" v-model="service_name">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monitorTarget" class="col-sm-3 control-label"> Target </label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="monitorTarget"
+                                               placeholder="Target根据服务器IP和服务端口自动生成，如192.168.5.5:80" v-model="target" readonly="readonly">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monitorServerIP" class="col-sm-3 control-label"> 服务器IP地址 </label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="monitorServerIP"
+                                               placeholder="填写服务所在的服务器IP地址" v-model="server_ip">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monitorTcpPort" class="col-sm-3 control-label"> 服务TCP端口 </label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="monitorTcpPort"
+                                               placeholder="填写服务启动后监听的TCP端口" v-model="tcp_port">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monitorServiceOwner" class="col-sm-3 control-label"> 服务Owner </label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="monitorServiceOwner"
+                                               placeholder="填写服务负责人" v-model="service_owner">
+                                    </div>
+                                </div>
+                            </form>
+                            <div style="color:red;text-align:center" v-if="errMsg" v-text="errMsg"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                            </button>
+                            <button type="button" class="btn btn-primary" @click="create_monitor_tcp_connect_probe()">提交
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- / create-domain-modal -->
+
+            <ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i> Home </a></li>
+                <li class="active"> 服务端口监控列表</li>
+            </ol>
+        </section>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="box">
+                        <div class="box-header">
+                        </div>
+
+                        <!-- /.box-header -->
+                        <div class="box-body">
+                            <!-- search -->
+                            <form id="monitor_tcp_connect_probe_search_form" method="post"
+                                  action="{{ url_for('monitor.monitor_tcp_connect_probe_search') }}" class="row">
+                                <div class="col-md-4 pull-right" style="margin-top:-10px;margin-right:5px;margin-bottom:1px">
+                                    <div class="input-group">
+                                        <input id="search_keyword" style="font-size: 12px" type="text" name="search" class="form-control"
+                                               value="{{ search }}" placeholder="搜索"
+                                               v-model="search">
+                                        <span class="input-group-btn">
+                                        <input type="submit" class="btn btn-info btn-search" value="搜索">
+                                        </span>
+                                    </div>
+                                </div>
+                            </form>
+                            <!-- / search -->
+
+                            <table id="tcpConnectProbeTable" class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>服务名称</th>
+                                    <th>Target</th>
+                                    <th>服务器IP</th>
+                                    <th>服务TCP端口</th>
+                                    <th>服务Owner</th>
+                                    <th>更新时间</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+                                {% for value in tcp_connect_probes %}
+                                    <tr>
+                                        <td>{{ value.service_name }}</td>
+                                        <td>{{ value.target }}</td>
+                                        <td>{{ value.server_ip }}</td>
+                                        <td>{{ value.tcp_port }}</td>
+                                        <td>{{ value.service_owner }}</td>
+                                        <td>{{ value.update_date }}</td>
+                                        {% if current_user.role.name in ['Admin', 'Ops'] %}
+                                            <td>
+                                                <span class="label label-warning btn-xs" style="margin-right:10px;cursor:pointer"
+                                                      data-toggle="modal"
+                                                      @click="modify_tcp_connect_probe_id='{{ value.id }}',
+                                                      modify_service_name='{{ value.service_name }}',
+                                                      modify_target='{{ value.target }}',
+                                                      modify_server_ip='{{ value.server_ip }}',
+                                                      modify_tcp_port='{{ value.tcp_port }}',
+                                                      modify_service_owner='{{ value.service_owner }}',
+                                                      modify_update_date='{{ value.update_date }}'"
+                                                      data-target=".modify-tcp-connect-probe-modal">编辑
+                                                </span>
+                                                <span
+                                                        class="label label-danger btn-xs" style="margin-right:10px;cursor:pointer"
+                                                        @click="show_delete_monitor_tcp_connect_probe_modal('{{ value.id }}', '{{ value.target }}')"> 删除
+                                                </span>
+                                                <span class="label label-info btn-xs" style="margin-right:10px;cursor:pointer"
+                                                      data-toggle="modal"
+                                                      @click="clone_tcp_connect_probe_id='{{ value.id }}',
+                                                      clone_service_name='{{ value.service_name }}',
+                                                      clone_target='{{ value.target }}',
+                                                      clone_server_ip='{{ value.server_ip }}',
+                                                      clone_tcp_port='{{ value.tcp_port }}',
+                                                      clone_service_owner='{{ value.service_owner }}',
+                                                      clone_update_date='{{ value.update_date }}'"
+                                                      data-target=".clone-tcp-connect-probe-modal">克隆
+                                                </span>
+                                            </td>
+                                        {% else %}
+                                            <td></td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <!-- modify-domain-modal -->
+                            <div class="modal fade modify-tcp-connect-probe-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel-modify" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel-modify"> 修改服务端口监控 </h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="modifyServiceName" class="col-sm-3 control-label">服务名称</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyServiceName"
+                                                               placeholder="" v-model="modify_service_name">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyTarget" class="col-sm-3 control-label">Target</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyTarget"
+                                                               placeholder="" v-model="modify_target" readonly="readonly">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyServerIP" class="col-sm-3 control-label">服务器IP地址</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyServerIP"
+                                                               placeholder="" v-model="modify_server_ip">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyTcpPort" class="col-sm-3 control-label">服务TCP端口</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyTcpPort"
+                                                               placeholder="" v-model="modify_tcp_port">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyServiceOwner" class="col-sm-3 control-label">服务Owner</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyServiceOwner"
+                                                               placeholder="" v-model="modify_service_owner">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-3 control-label" for="modifyUpdateDate">更新时间</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="modifyUpdateDate" readonly="readonly"
+                                                               placeholder="" v-model="modify_update_date">
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg2" v-text="errMsg2"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="modify_monitor_tcp_connect_probe()">提交
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- / modify-domain-modal -->
+
+                            <!-- delete-domain-modal -->
+                            <div class="modal fade delete-monitor-tcp-connect-probe-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel4" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel4"> 删除服务端口监控 </h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label style="text-align: center" class="col-sm-12 control-label">确认是否删除该服务端口监控?</label>
+                                                    <label style="text-align: center" class="col-sm-12 control-label">[[ delete_target ]]</label>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="delete_monitor_tcp_connect_probe()">删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- / delete-domain-modal -->
+
+                            <!-- clone-domain-modal -->
+                            <div class="modal fade clone-tcp-connect-probe-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel-modify" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel-modify"> 克隆服务端口监控 </h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="cloneServiceName" class="col-sm-3 control-label">服务名称</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneServiceName"
+                                                               placeholder="" v-model="clone_service_name">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="cloneTarget" class="col-sm-3 control-label">Target</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneTarget"
+                                                               placeholder="" v-model="clone_target" readonly="readonly">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="cloneServerIP" class="col-sm-3 control-label">服务器IP地址</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneServerIP"
+                                                               placeholder="" v-model="clone_server_ip">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="cloneTcpPort" class="col-sm-3 control-label">服务TCP端口</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneTcpPort"
+                                                               placeholder="" v-model="clone_tcp_port">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="cloneServiceOwner" class="col-sm-3 control-label">服务Owner</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneServiceOwner"
+                                                               placeholder="" v-model="clone_service_owner">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-3 control-label" for="cloneUpdateDate">更新时间</label>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" id="cloneUpdateDate" readonly="readonly"
+                                                               placeholder="" v-model="clone_update_date">
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg3" v-text="errMsg3"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="clone_monitor_tcp_connect_probe()">克隆
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- / clone-domain-modal -->
+
+                        </div>
+
+                        {% if pagination %}
+                            <div class="pagination" style="float:right">
+                                {{ page.pagination_widget(pagination,"monitor.monitor_tcp_connect_probe",search=search) }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+{% endblock %}
+
+{% block bottom_js %}
+    <script>
+        data = {
+            service_name: '',
+            target: '',
+            server_ip: '',
+            tcp_port: '',
+            service_owner: '',
+            errMsg: '',
+            modify_tcp_connect_probe_id: '',
+            modify_service_name: '',
+            modify_target: '',
+            modify_server_ip: '',
+            modify_tcp_port: '',
+            modify_service_owner: '',
+            modify_update_date: '',
+            errMsg2: '',
+            delete_tcp_connect_probe_id: '',
+            delete_target: '',
+            clone_tcp_connect_probe_id: '',
+            clone_service_name: '',
+            clone_target: '',
+            clone_server_ip: '',
+            clone_tcp_port: '',
+            clone_service_owner: '',
+            clone_update_date: '',
+            errMsg3: '',
+            search: ''
+        };
+
+        Vue.config.delimiters = ['[[', ']]'];
+
+        new Vue({
+            el: '.monitorTcpConnectProbe',
+            data: data,
+            methods: {
+                create_monitor_tcp_connect_probe: function () {
+                    service_name = this.service_name;
+                    server_ip = this.server_ip;
+                    tcp_port = this.tcp_port;
+                    service_owner = this.service_owner;
+                    create_monitor_tcp_connect_probe(service_name, server_ip, tcp_port, service_owner);
+                },
+                modify_monitor_tcp_connect_probe: function () {
+                    tcp_connect_probe_id = this.modify_tcp_connect_probe_id;
+                    service_name = this.modify_service_name;
+                    target = this.modify_target;
+                    server_ip = this.modify_server_ip;
+                    tcp_port = this.modify_tcp_port;
+                    service_owner = this.modify_service_owner;
+                    update_date = this.modify_update_date;
+                    modify_monitor_tcp_connect_probe(tcp_connect_probe_id, service_name, target, server_ip, tcp_port, service_owner);
+                },
+                show_delete_monitor_tcp_connect_probe_modal: function (tcp_connect_probe_id, target) {
+                    this.delete_tcp_connect_probe_id = tcp_connect_probe_id;
+                    this.delete_target = target;
+                    $('.delete-monitor-tcp-connect-probe-modal').modal('show');
+                },
+                delete_monitor_tcp_connect_probe: function () {
+                    delete_monitor_tcp_connect_probe(this.delete_tcp_connect_probe_id, this.delete_target);
+                },
+                clone_monitor_tcp_connect_probe: function () {
+                    service_name = this.clone_service_name;
+                    target = this.clone_target;
+                    server_ip = this.clone_server_ip;
+                    tcp_port = this.clone_tcp_port;
+                    service_owner = this.clone_service_owner;
+                    clone_monitor_tcp_connect_probe(service_name, target, server_ip, tcp_port, service_owner);
+                },
+            },
+        });
+
+        function create_monitor_tcp_connect_probe(service_name, server_ip, tcp_port, service_owner) {
+            if (!service_name) {
+                data.errMsg = '监控服务名称不能为空！';
+                return;
+            }
+            if (!server_ip) {
+                data.errMsg = '服务器IP地址不能为空！';
+                return;
+            }
+            if (!tcp_port) {
+                data.errMsg = '服务TCP端口不能为空！';
+                return;
+            }
+            if (!service_owner) {
+                data.errMsg = '服务Owner不能为空！';
+                return;
+            }
+
+            if (!ValidateIPAddress(server_ip)) {
+                data.errMsg = '服务器IP地址不符合ipv4格式！';
+                return;
+            }
+
+            $.ajax({
+                url: "{{ url_for('api_monitor.api_monitor_tcp_connect_probe') }}",
+                data: {
+                    'service_name': service_name,
+                    'server_ip': server_ip,
+                    'tcp_port': tcp_port,
+                    'service_owner': service_owner,
+                },
+                timeout: 3000,
+                type: 'post',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '添加成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.create-monitor-tcp-connect-probe-modal').modal('hide');
+                    } else {
+                        swal("添加失败", response.resMsg, "error");
+                    }
+                }
+            })
+
+        }
+
+        function ValidateIPAddress(address) {
+            if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(address)) {
+                return (true);
+            }
+            return (false);
+        }
+
+        function modify_monitor_tcp_connect_probe(tcp_connect_probe_id, service_name, target, server_ip, tcp_port, service_owner) {
+            if (!service_name) {
+                data.errMsg2 = '监控服务名称不能为空！';
+                return;
+            }
+            if (!server_ip) {
+                data.errMsg2 = '服务器IP地址不能为空！';
+                return;
+            }
+            if (!tcp_port) {
+                data.errMsg2 = '服务TCP端口不能为空！';
+                return;
+            }
+            if (!service_owner) {
+                data.errMsg2 = '服务Owner不能为空！';
+                return;
+            }
+
+            if (!ValidateIPAddress(server_ip)) {
+                data.errMsg2 = '服务器IP地址不符合ipv4格式！';
+                return;
+            }
+
+            $.ajax({
+                url: "{{ url_for('api_monitor.api_monitor_tcp_connect_probe') }}",
+                data: {
+                    'tcp_connect_probe_id': tcp_connect_probe_id,
+                    'service_name': service_name,
+                    'target': target,
+                    'server_ip': server_ip,
+                    'tcp_port': tcp_port,
+                    'service_owner': service_owner
+                },
+                timeout: 3000,
+                type: 'put',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '修改成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.modify-tcp-connect-probe-modal').modal('hide');
+                    } else {
+                        swal("修改失败", response.resMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function delete_monitor_tcp_connect_probe(tcp_connect_probe_id, target) {
+            $.ajax({
+                url: "{{url_for('api_monitor.api_monitor_tcp_connect_probe')}}",
+                data: {
+                    'tcp_connect_probe_id': tcp_connect_probe_id,
+                    'target': target
+                },
+                timeout: 10000,
+                type: 'delete',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '删除成功',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.delete-monitor-tcp-connect-probe-modal').modal('hide');
+                    } else {
+                        swal("删除失败", response.resMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function clone_monitor_tcp_connect_probe(service_name, target, server_ip, tcp_port, service_owner) {
+            if (!service_name) {
+                data.errMsg3 = '监控服务名称不能为空！';
+                return;
+            }
+            if (!server_ip) {
+                data.errMsg3 = '服务器IP地址不能为空！';
+                return;
+            }
+            if (!tcp_port) {
+                data.errMsg3 = '服务TCP端口不能为空！';
+                return;
+            }
+            if (!service_owner) {
+                data.errMsg3 = '服务Owner不能为空！';
+                return;
+            }
+
+            if (!ValidateIPAddress(server_ip)) {
+                data.errMsg3 = '服务器IP地址不符合ipv4格式！';
+                return;
+            }
+
+            $.ajax({
+                url: "{{ url_for('api_monitor.api_monitor_tcp_connect_probe_clone') }}",
+                data: {
+                    'service_name': service_name,
+                    'target': target,
+                    'server_ip': server_ip,
+                    'tcp_port': tcp_port,
+                    'service_owner': service_owner
+                },
+                timeout: 3000,
+                type: 'post',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '克隆成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.clone-tcp-connect-probe-modal').modal('hide');
+                    } else {
+                        swal("克隆失败", response.resMsg, "error");
+                    }
+                }
+            })
+        }
+
+        $(function () {
+            $('#tcpConnectProbeTable').DataTable({
+                'paging': false,
+                'lengthChange': false,
+                'searching': false,
+                'ordering': true,
+                'info': false,
+                'autoWidth': false,
+                /* 'pageLength': 100 */
+            })
+        })
+    </script>
+{% endblock %}

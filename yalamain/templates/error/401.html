@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>401</title>
+    <link rel="stylesheet" type="text/css">
+    <style>
+        h1, p {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 80px;
+        }
+
+        #wrapper {
+            width: 600px;
+            height: 200px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div id="main">
+        <div id="header">
+            <h1>401!</h1>
+        </div>
+        <div id="content">
+            <p>Unauthorized!</p>
+            <p id="show"></p>
+        </div>
+    </div>
+    <script>
+        var t = 5;//设定跳转的时间
+        setInterval("refer()", 1000); //启动1秒定时
+        function refer() {
+            if (t === 0) {
+                location = "/index"; //#设定跳转的链接地址
+            }
+            document.getElementById('show').innerHTML = "<strong>" + t + "</strong>秒后将会跳转到CRE系统首页！"; // 显示倒计时
+            t--; // 计数器递减
+        }
+    </script>
+</div>
+</html>

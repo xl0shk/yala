@@ -1,0 +1,27 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+flask = "*"
+flask-sqlalchemy = "*"
+flask-login = "*"
+tablib = "*"
+ipy = "*"
+flask-httpauth = "*"
+pymysql = "*"
+flask-simpleldap = "*"
+gunicorn = "*"
+requests = "*"
+aliyun-python-sdk-core-v3 = "*"
+aliyun-python-sdk-ecs = "*"
+aliyun-python-sdk-ess = "*"
+python-dotenv = "*"
+flask-wtf = "*"
+flask-apscheduler = "*"
+
+[requires]
+python_version = "3.7"

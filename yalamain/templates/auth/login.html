@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="{{ url_for('static',filename='image/favicon.ico') }}" type="image/x-icon">
+
+    <title>Yala</title>
+    <link href="{{ url_for('static', filename = 'css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- <link href="{{ url_for('static', filename = 'css/font-awesome.min.css') }}" rel="stylesheet"> -->
+    <!-- <link href="{{ url_for('static', filename = 'css/ionicons.min.css') }}" rel="stylesheet"> -->
+    <link href="{{ url_for('static', filename = 'css/AdminLTE.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename = 'css/iCheck/square/blue.css') }}" rel="stylesheet">
+    <!-- <link href="{{ url_for('static', filename = 'css/sweetalert2.min.css') }}" rel="stylesheet"> -->
+</head>
+
+<body class="hold-transition login-page">
+    <div class="login-box" id="login-page-id">
+        <div class="login-logo">YALA运维平台</div>
+        <div class="login-box-body">
+            <p class="login-box-msg">Sign in to visit</p>
+
+            <form role="form" method="post">
+                <div class="form-group has-feedback">
+                    <input type="text" id="inputUsername" class="form-control" placeholder="Username" v-model.trim="username">
+                    <span class="glyphicon glyphicon-user form-control-feedback"></span>
+                </div>
+                <div class="form-group has-feedback">
+                    <input type="password" id="inputPassword" class="form-control" placeholder="Password" v-model.trim="password">
+                    <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                </div>
+                <div class="row">
+                    <div class="col-xs-8">
+                        <div class="checkbox icheck">
+                            <label>
+                                <input type="checkbox" value="remember-me" v-model="remember_me"> Remember Me
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-xs-4">
+                        <button type="button" class="btn btn-primary btn-block btn-lg" @click="submit()">Login</button>
+                    </div>
+                </div>
+                <div style="text-align:center" class="text-danger" v-if="errMsg" v-text="errMsg"></div>
+            </form>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript" src="{{ url_for('static', filename = 'js/jquery.min.js') }}"></script>
+<!-- <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script> -->
+<script type="text/javascript" src="{{ url_for('static', filename = 'js/vue.js') }}"></script>
+<!-- <script type="text/javascript" src="{{ url_for('static', filename = 'js/sweetalert2.all.min.js') }}"></script> -->
+<script type="text/javascript" src="{{ url_for('static', filename = 'js/icheck.min.js') }}"></script>
+<script>
+    $(function () {
+        $('input').iCheck({
+            checkboxClass: 'icheckbox_square-blue',
+            radioClass: 'iradio_square-blue',
+            increaseArea: '20%' /* optional */
+        });
+    });
+    data = {
+        'username': '',
+        'password': '',
+        'remember_me': '',
+        'errMsg': '',
+    };
+    new Vue({
+        el: '#login-page-id',
+        data: data,
+        methods: {
+            submit: function () {
+                let username = this.username;
+                let password = this.password;
+                let remember_me = this.remember_me;
+                submit(username, password, remember_me);
+            }
+        }
+    });
+
+    function submit(username, password, remember_me) {
+        if (!username) {
+            data.errMsg = '用户名不能为空';
+            return;
+        }
+        if (!password) {
+            data.errMsg = '密码不能为空';
+            return;
+        }
+        $.ajax({
+            url: "{{url_for('auth.auth_login')}}",
+            data: {
+                'username': username,
+                'password': password,
+                'remember_me': remember_me
+            },
+            timeout: 10000,
+            type: 'post',
+            success: function (response) {
+                if (response.resCode === -1) {
+                    swal({
+                        type: 'error',
+                        title: '登录失败',
+                        text: response.errMsg,
+                        showConfirmButton: true
+                    }).then(function () {
+                        window.location.reload();
+                    })
+                } else if (response.resCode === 1) {
+                    if (response.next) {
+                        window.location.href = response.next
+                    } else {
+                        window.location.href = '{{ url_for('index.index') }}'
+                    }
+                }
+                else {
+                    swal({
+                        type: 'error',
+                        title: '未知原因的登录失败',
+                        text: response.errMsg,
+                        showConfirmButton: true
+                    }).then(function () {
+                        window.location.reload();
+                    })
+                }
+            }
+        })
+    }
+</script>
+</html>

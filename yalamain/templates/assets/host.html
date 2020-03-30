@@ -1,0 +1,2175 @@
+{% extends "base.html" %}
+{% import "page.html" as page %}
+{% block header_css %}
+    <style type="text/css">
+        div#rMenu {
+            position: absolute;
+            visibility: hidden;
+            text-align: left;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            padding: 0 0;
+            margin: 2px 0 0;
+            list-style: none;
+            background-clip: padding-box;
+        }
+        #hostListTbl .label{
+            color:#66b1ff!important;
+            background-color: rgba(255,255,255,0) !important;
+            font-size: 12px;
+        }
+        #toggle-button:hover{background: #F0F0F0!important}    
+        .dataTables_wrapper .dataTables_processing {
+            opacity: .9;
+            border: none;
+        }
+        .table-hover > tbody > tr:hover > td,
+        .table-hover > tbody > tr:hover > th {
+        /* 设定鼠标的形状为一只伸出食指的手 */
+            cursor: pointer; 
+        }
+        div#rMenu li {
+            margin: 1px 0;
+            cursor: pointer;
+            list-style: none outside none;
+        }
+
+        .dropdown a:hover {
+            background-color: #f1f1f1
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="host_list" class="content-wrapper list">
+        <section class="content-header">
+            <h1>
+                主机管理
+                <small>
+                    默认每页显示25条数据
+                </small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="{{ url_for('index.index') }}"><i class="fa fa-dashboard"></i> Home</a></li>
+                <li><a href="{{ url_for('assets.assets_host') }}"> 主机管理 </a></li>
+                <li class="active"> 主机信息</li>
+            </ol>
+        </section>
+        <section class="content">
+            <div class="row">
+                <div class="col-lg-2" id="split-left" style="padding-left: 3px">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-content mailbox-content" style="padding-top: 0;padding-left: 1px">
+                            <div class="file-manager ">
+                                <div id="assetTree" class="ztree">
+                                </div>
+                                <div class="clearfix"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-10 animated fadeInRight" id="split-right">
+                    <div class="panel panel-default">
+                        <div class="tree-toggle" style="z-index:10">
+                            <div class="btn btn-sm btn-primary tree-toggle-btn" id="toggle-button" onclick="toggle()" style="background-color: rgba(255,255,255,0) ;color: black;border-color: rgba(255,255,255,0);">
+                                <i class="fa fa-angle-left fa-x" id="toggle-icon"></i>
+                            </div>
+                        </div>
+                        <div class="panel-heading" style="color: dimgray;">
+                            主机列表
+                            {% if current_user.role.name == 'Admin' or current_user.role.name == 'Ops' %}
+                                <div class="btn-group" id="toolbar">
+                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class=" glyphicon glyphicon-th-large"></i>
+                                    <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="javascript:void(0)"  data-target=".add-host-modal" data-toggle="modal">添加主机</a ></li>
+                                        <li><a href="javascript:void(0)" data-target=".multi-import-host-modal" data-toggle="modal">批量导入</a ></li>
+                                        <li><a href="javascript:void(0)" id="export-import">导出</a ></li>
+                                        <li><a href="javascript:void(0)" id="delete-multi">批量删除</a ></li>
+                                    </ul>
+                            {% endif %}
+
+                            <div class="modal fade add-host-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel">添加主机</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form id="add_host_modal_form" class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="inputInnerIP" class="col-sm-2 control-label">内网IP<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputInnerIP"
+                                                               placeholder="内网IP" v-model="new_host_innerIP">
+                                                    </div>
+                                                </div>
+                                                <div style="color:red;text-align:center;margin-top:-15px;"
+                                                     v-if="errMsg2" v-text="errMsg2"></div>
+                                                <div class="form-group">
+                                                    <label for="inputOuterIP"
+                                                           class="col-sm-2 control-label">外网IP</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputOuterIP"
+                                                               placeholder="外网IP" v-model="new_host_outerIP">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputElasticIP"
+                                                           class="col-sm-2 control-label">弹性IP</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputElasticIP"
+                                                               placeholder="弹性IP" v-model="new_host_elasticIP">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputHostname" class="col-sm-2 control-label">主机名<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputHostname"
+                                                               placeholder="Hostname" v-model="new_hostname">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputHostCPU"
+                                                           class="col-sm-2 control-label">CPU</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputHostCPU"
+                                                               placeholder="CPU" v-model="new_host_cpu">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputHostMemory"
+                                                           class="col-sm-2 control-label">内存</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputHostMemory"
+                                                               placeholder="内存" v-model="new_host_memory">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputHostDisk"
+                                                           class="col-sm-2 control-label">存储</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputHostDisk"
+                                                               placeholder="存储" v-model="new_host_disk">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">使用部门<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_use_dpt_info">
+                                                            <option selected="selected" value="">请选择使用部门</option>
+                                                            <option v-for="line in dpt_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">使用人<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select id="add_user_select" class="form-control"
+                                                                style="width:100%" v-model="new_user_info">
+                                                            <option selected="selected" value="">请选择使用人</option>
+                                                            <option v-for="line in user_list" value="${line.id}"
+                                                                    v-text="line.fullname"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">运维人员<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_operator_info">
+                                                            <option selected="selected" value="">请选择运维人员</option>
+                                                            <option v-for="line in operator_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">所属部门<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_owner_dpt_info">
+                                                            <option selected="selected" value="">请选择所属部门</option>
+                                                            <option v-for="line in dpt_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">服务<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select id="add_service_select" class="form-control"
+                                                                style="width:100%" v-model="new_service_info">
+                                                            <option selected="selected" value="">请选择服务</option>
+                                                            <option v-for="line in getSvcListByDptID(new_use_dpt_info)"
+                                                                    value="${line.id}" v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">设备信息</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_device_info">
+                                                            <option selected="selected" value="">请选择设备信息</option>
+                                                            <option v-for="line in device_list" value="${line.id}"
+                                                                    v-text="line.showMsg"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">位置信息</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_cabinet_info">
+                                                            <option selected="selected" value="">请选择位置信息</option>
+                                                            <option v-for="line in cabinet_list" value="${line.id}"
+                                                                    v-text="line.code"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">创建日期<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control"
+                                                               onClick="WdatePicker()"
+                                                               placeholder="创建日期" readonly
+                                                               v-model.trim="new_create_date">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">支付方式</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_payment_type">
+                                                            <option selected="selected" value="">请选择支付方式</option>
+                                                            <option value="包月">包月</option>
+                                                            <option value="包年">包年</option>
+                                                            <option value="按量">按量</option>
+                                                            <option value="自建">自建</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">状态<i
+                                                            class="fa fa-info-circle"
+                                                            data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="new_host_status">
+                                                            <option selected="selected" value="">请选择状态</option>
+                                                            <option value="可用">可用</option>
+                                                            <option value="不可用">不可用</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputComment"
+                                                           class="col-sm-2 control-label">备注</label>
+                                                    <div class="col-sm-10">
+                                                        <textarea cols="55" rows="3" v-model="new_comment"
+                                                                  id="inputComment" class="form-control"></textarea>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg"
+                                                 v-text="errMsg"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="add_host()">提交
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal fade multi-import-host-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel3" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel3">批量导入主机</h4>
+                                        </div>
+                                        <form id="upload_form" enctype="multipart/form-data">
+                                            <div class="modal-body">
+                                                <div class="form-group">
+                                                    <div class="col-sm-12">
+                                                        <input type="file" name="upload_file" v-model="upload_file">
+                                                    </div>
+                                                </div>
+                                                <label style="margin-top:20px;text-align:center">请先下载Excel文件,
+                                                    按照格式填写主机信息, 上传导入. <a
+                                                            href="{{ url_for('api_assets.api_assets_show_attachment') }}?filename=host_template.xls">点击下载模板</a></label>
+                                                <div style="color:red;text-align:center" v-if="errMsg2"
+                                                     v-text="errMsg2"></div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">
+                                                    关闭
+                                                </button>
+                                                <button type="button" class="btn btn-primary"
+                                                        onclick="upload_host_file()">提交
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover" id="hostListTbl"></table>
+                            </div>
+                            <div class="modal fade delete-host-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel4" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel4">删除主机</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label style="text-align: center"
+                                                           class="col-sm-5 control-label">确认是否删除该主机?</label>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="delete_host()">删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade delete-multi-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabelD" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabelD">批量删除主机</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label style="text-align: center"
+                                                           class="col-sm-5 control-label">确认是否删除这些主机?</label>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" id="confirm-delete">删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade modify-host-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel2" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel2">修改主机信息</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="modifyInnerIP"
+                                                           class="col-sm-2 control-label">内网IP</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyInnerIP"
+                                                               placeholder="内网IP" readonly v-model="innerIP">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyOuterIP"
+                                                           class="col-sm-2 control-label">外网IP</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyOuterIP"
+                                                               placeholder="外网IP" v-model="outerIP">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyElasticIP"
+                                                           class="col-sm-2 control-label">弹性IP</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyElasticIP"
+                                                               placeholder="弹性IP" v-model="elasticIP">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyHostname"
+                                                           class="col-sm-2 control-label">主机名<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyHostname"
+                                                               placeholder="主机名" v-model="hostname">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyCPU"
+                                                           class="col-sm-2 control-label">CPU</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyCPU"
+                                                               placeholder="CPU" v-model="cpu">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyMemory"
+                                                           class="col-sm-2 control-label">内存</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyMemory"
+                                                               placeholder="内存" v-model="memory">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="modifyDisk"
+                                                           class="col-sm-2 control-label">存储</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="modifyDisk"
+                                                               placeholder="存储" v-model="disk">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">使用部门<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="use_dpt">
+                                                            <option v-for="line in dpt_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">使用人<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select id="modify_user_select" class="form-control"
+                                                                style="width:100%" v-model="user">
+                                                            <option v-for="line in user_list" value="${line.id}"
+                                                                    v-text="line.fullname"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">运维人员<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="operator">
+                                                            <option v-for="line in operator_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">所属部门<i
+                                                            class="fa fa-info-circle" data-toggle="tooltip"
+                                                            title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="owner_dpt">
+                                                            <option v-for="line in dpt_list" value="${line.id}"
+                                                                    v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">服务<i class="fa fa-info-circle"
+                                                                                               data-toggle="tooltip"
+                                                                                               title="必填项"></i></label>
+                                                    <div class="col-sm-10">
+                                                        <select id="modify_service_select" class="form-control"
+                                                                style="width:100%" v-model="modify_service">
+                                                           <!-- <option selected="selected" value="">请选择服务</option> -->
+                                                            <option v-for="line in getSvcListByDptID(use_dpt)"
+                                                                    value="${line.id}" v-text="line.name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">设备信息</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="device">
+                                                            <option v-for="line in device_list" value="${line.id}"
+                                                                    v-text="line.showMsg"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">位置信息</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="cabinet">
+                                                            <option v-for="line in cabinet_list" value="${line.id}"
+                                                                    v-text="line.code"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">创建日期</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control"
+                                                               onClick="WdatePicker()"
+                                                               placeholder="创建日期" readonly
+                                                               v-model.trim="create_date">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">支付方式</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="payment">
+                                                            <option value="包月">包月</option>
+                                                            <option value="包年">包年</option>
+                                                            <option value="按量">按量</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label">状态</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control" v-model="host_status">
+                                                            <option value="可用">可用</option>
+                                                            <option value="不可用">不可用</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputComment"
+                                                           class="col-sm-2 control-label">备注</label>
+                                                    <div class="col-sm-10">
+                                                        <textarea cols="55" rows="3" v-model="comment"
+                                                                  id="modifyComment" class="form-control"></textarea>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg"
+                                                 v-text="errMsg"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="modify_host()">修改
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div id="rMenu">
+        <ul class="dropdown-menu">
+            <li class="divider"></li>
+            <li id="m_create" tabindex="-1" onclick="addTreeNode();"><a><i class="fa fa-plus-square-o"></i>新建节点</a></li>
+            <li id="m_mod" tabindex="-1" onclick="editTreeNode();"><a><i class="fa fa-pencil-square-o"></i>重命名节点</a>
+            </li>
+            <li id="m_del" tabindex="-1" onclick="removeTreeNode();"><a><i class="fa fa-minus-square"></i>删除节点</a></li>
+            <li class="divider"></li>
+        </ul>
+    </div>
+{% endblock %}
+{% block bottom_js %}
+    <script>
+        let zTree, rMenu, asset_table, windowWidth, show = 0;
+        window.onload = function () {
+            $.fn.modal.Constructor.prototype.enforceFocus = function () {};
+
+            /* 初始化树形结构数据 */
+            initTree();
+
+            windowWidth = $(window).width();
+            if (windowWidth <= 1280) {
+                $("#split-left").attr("class", "col-lg-3");
+                $("#split-right").attr("class", "col-lg-9");
+            }
+
+            /* 处理main-sidebar显示 */
+            if (({{ menu|tojson }}) in {'host_list': '', 'service_list': '', 'host_detail': ''}) {
+                $('#host_manage').addClass('active').addClass('menu-open');
+            } else {
+                $('#host_manage').removeClass('active').removeClass('menu-open');
+            }
+
+            /* 预先加载department,operator,user,service全量数据 */
+            load_department_list();
+            load_operator_list();
+            load_user_list();
+            load_service_list();
+
+            $('#add_service_select').select2();
+            $('#modify_service_select').select2();
+            $('#add_user_select').select2();
+            $('#modify_user_select').select2();
+            $("#export-import").on("click",function(){
+                let actionUrl = "{{ url_for('api_assets.api_assets_export_host') }}";
+                let temp_form = document.createElement("form");
+                temp_form.action = actionUrl;
+                temp_form.submit();
+                $("body").append(temp_form);
+                temp_form.submit();
+                
+            });
+            
+            $("#delete-multi").on("click",function(){
+                let ids = $('#hostListTbl') .bootstrapTable('getAllSelections');
+                if(ids.length < 1){
+                    alert("请选择至少一条数据");
+                    return false;
+                }
+                window.selectIds = ids;
+                $('.delete-multi-modal').modal('show');
+            });
+
+            $("#confirm-delete").on("click",function(){
+                let data = window.selectIds;
+                for(let t = 0 ; t < data.length; t++){
+                    let thisData = data[t];
+                    delete_host(thisData.id);
+                }
+                $('.delete-multi-modal').modal('hide');
+            });
+
+            $('.modify-host-modal').on('shown.bs.modal', function (e) {
+                let modify_service = $('#modify_service_select');
+                let user_service = $('#modify_user_select');
+                modify_service.val(e.relatedTarget.service_id);
+                modify_service.trigger('change');
+                user_service.val(e.relatedTarget.user_id);
+                user_service.trigger('change');
+            });
+
+            $('.add-host-modal').on('hidden.bs.modal', function () {
+                $("#add_host_modal_form")[0].reset();
+                $('#add_service_select').val(null).trigger('change');
+            });
+
+            $('.add-host-modal').on('shown.bs.modal', function () {
+                load_department_list();
+                load_service_list();
+            });
+
+            $('#hostListTbl').bootstrapTable({
+                url: '{{ url_for('api_assets.api_assets_host_list') }}',
+                method: 'get',
+                toolbarAlign: 'right',
+                striped: true,
+                cache: true,
+                pagination: true,
+                queryParams: function (params) { // 请求服务器数据时发送的参数，可以在这里添加额外的查询参数，返回false则终止请求
+                    return {
+                        /* type: 'load_host_list', // 额外添加的参数 */
+                        use_dpt: $("#use_dpt").val(),
+                        service: $("#service").val(),
+                    }
+                },
+                sidePagination: "client",           //分页方式：client客户端分页，server服务端分页（*）
+                pageNumber: 1,                       //初始化加载第一页，默认第一页
+                pageSize: localStorage.getItem("currentPageSize") || 25,                       //每页的记录行数（*）
+                //pageList: [10, 20, 25, 50, 60, 70, 100],        //可供选择的每页的行数（*）
+                pageList: [10, 25, 50, 100, 'All'],
+                smartDisplay: false,
+                search: true,
+                //strictSearch: true,
+                clickToSelect: false,                //是否启用点击选中行
+                //height: 460,                        //行高，如果没有设置height属性，表格自动根据记录条数觉得表格高度
+                uniqueId: "id",                     //每一行的唯一标识，一般为主键列
+                idField: "id",
+                cardView: false,                    //是否显示详细视图
+                detailView: false,                   //是否显示父子表
+                showHeader: true,
+                showFooter: false,
+                showColumns: true,
+                //maintainColSwitch: true,              //保持显示隐藏列参数,使用默认参数传入true即可
+                showToggle: true,
+                showPaginationSwitch: false,
+                showFullscreen: false,
+                searchAlign: 'right',
+                checkboxHeader: true,
+                //singleSelect: true,
+                //selectItemName: 'cao',
+                //showSelectTitle: true,
+                sortable: true,                     //是否启用排序
+                sortOrder: "asc",                   //排序方式
+                resizable: false,
+                resizeMode: 'fit',
+                toolbar:'#toolbar',
+                //sortName: 'innerIP',
+                responseHandler: function (response) {
+                    //console.log("res: " + JSON.stringify(res));
+                    return response.resData;
+                },
+                /*columns: [
+                {
+                    checkbox: false,
+                    align: 'center',
+                    halign: 'center',
+                    valign: 'middle',
+                }, */
+                columns: [
+                {
+                    field: 'c_val',
+                    class: 'table-checkbox',
+                    checkbox: true
+                },
+                {
+                    field: 'id',
+                    title: '序号',
+                    visible: false,
+                    align: 'center',
+                    width: 50,
+                    valign: 'middle',
+                }, 
+                {
+                    field: 'innerIP',
+                    title: '内网IP',
+                    sortable: true,
+                    order: 'asc',
+                    align: 'center',
+                    width: 100,
+                }, {
+                    field: 'hostname',
+                    title: '主机名',
+                    align: 'center',
+                    halign: 'center',
+                    valign: 'middle',
+                    sortable: true,
+                    order: 'asc',
+                    width: 150,
+                },
+                    /*{
+                        field: 'basic_device_cfg',
+                        title: '基本配置',
+                        align: 'center',
+                        width: 50,
+                    }, */
+                    {
+                        field: 'cpu',
+                        title: 'CPU',
+                        align: 'center',
+                        width: 50,
+                        visible: false,
+                    }, {
+                        field: 'memory',
+                        title: '内存',
+                        align: 'center',
+                        width: 60,
+                        visible: false,
+                    }, {
+                        field: 'disk',
+                        title: '存储',
+                        align: 'center',
+                        width: 50,
+                        visible: false,
+                    }, {
+                        field: 'use_dpt',
+                        title: '使用部门',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 100,
+                    }, {
+                        field: 'user',
+                        title: '使用人',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 100,
+                    }, {
+                        field: 'operator',
+                        title: '运维人员',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 100,
+                        visible: false,
+                    }, {
+                        field: 'create_date',
+                        title: '创建日期',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 100,
+                        visible: false,
+                    }, {
+                        field: 'owner_dpt',
+                        title: '所属部门',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 100,
+                        visible: false,
+                    }, {
+                        field: 'payment',
+                        title: '支付方式',
+                        align: 'center',
+                        width: 80,
+                        visible: false,
+                    }, {
+                        field: 'service',
+                        title: '服务',
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                        width: 150,
+                        visible: false,
+                    }, {
+                        field: 'device',
+                        title: '设备',
+                        visible: false,
+                        switchable: true,
+                        align: 'center',
+                    }, {
+                        field: 'cabinet',
+                        title: '位置',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'comment',
+                        title: '评论',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'outerIP',
+                        title: '外网IP',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'elasticIP',
+                        title: '弹性IP',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'host_model',
+                        title: '主机模式',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'host_status',
+                        title: '主机状态',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'os',
+                        title: '操作系统',
+                        visible: false,
+                        align: 'center',
+                    }, {
+                        field: 'service_id',
+                        title: '服务id',
+                        visible: false
+                    }, {
+                        field: 'user_id',
+                        title: '用户id',
+                        visible: false
+                    }, {
+                        field: 'instance_id',
+                        title: '实例id',
+                        align: 'center',
+                        visible: false
+                    }, {
+                        field: 'pretax_amount',
+                        title: '应付金额',
+                        visible: false,
+                        sortable: true,
+                        order: 'asc',
+                        align: 'center',
+                    }, {
+                        field: 'op',
+                        title: "操作",
+                        align: 'center',
+                        valign: 'middle',
+                        searchable: false,
+                        width: 100, // 定义列的宽度，单位为像素px
+                        formatter: function (value, row, index) {
+                            return '<span class="label label-success ops-modify" style="margin-right:10px;cursor:pointer" data-id="' + row.id + '" data-toggle="modal" onclick="show_modify_host_modal(\'' + row.id + '\',\'' + row.service_id + '\',\'' + row.user_id + '\')">修改</span>' +
+                                '<span class="label label-danger ops-delete" style="margin-right:10px;cursor:pointer" onclick="show_delete_host_modal(' + row.id + ')">删除</span>' 
+                                // +'<span class="label label-info ops-detail" style="margin-right:10px;cursor:pointer" onclick="jump_to_host_detail(' + row.id + ')">详情</span>'
+                                ;
+                        }
+                    },],
+                onLoadSuccess: function () {  //加载成功时执行
+                    console.info("加载成功");
+                    if (({{ current_user.role.name|tojson }}) === 'RD') {
+                        $('.ops-modify').css('display', 'none');
+                        $('.ops-delete').css('display', 'none');
+                    }
+                },
+                onLoadError: function () {  //加载失败时执行
+                    console.info("加载数据失败");
+                },
+                onPageChange: function (number, size) {
+                    localStorage.setItem('currentPageSize', size);
+                    if (({{ current_user.role.name|tojson }}) === 'RD') {
+                        $('.ops-modify').css('display', 'none');
+                        $('.ops-delete').css('display', 'none');
+                    }
+                },
+                onColumnSwitch: function () {
+                    if (({{ current_user.role.name|tojson }}) === 'RD') {
+                        $('.ops-modify').css('display', 'none');
+                        $('.ops-delete').css('display', 'none');
+                    }
+                },
+                onClickCell:function(field, value, row,e){
+                    if(field.trim() !== 'op'){
+                        jump_to_host_detail(row.id);
+                    }
+                }
+            });
+
+            $(window).resize(function () {
+                $('#hostListTbl').bootstrapTable('resetView');
+            });
+
+            if (({{ current_user.role.name|tojson }}) === 'RD') {
+            }
+        };
+
+        function toggle() {
+            if (show === 0) {
+                $("#split-left").hide(500, function () {
+                    $("#split-right").attr("class", "col-lg-12");
+                    $("#toggle-icon").attr("class", "fa fa-angle-right fa-x");
+                    show = 1;
+                });
+            } else {
+                if (windowWidth <= 1280) {
+                    $("#split-right").attr("class", "col-lg-9");
+                } else {
+                    $("#split-right").attr("class", "col-lg-10");
+                }
+                //$("#split-right").attr("class", "col-lg-10");
+                $("#toggle-icon").attr("class", "fa fa-angle-left fa-x");
+                $("#split-left").show(500);
+                show = 0;
+            }
+        }
+
+        function initTree() {
+            /* 初始化树型结构，函数功能测试正常 */
+            let currentNodeTid = arguments[0];
+            let parentNodeTid = arguments[1];
+            let setting = {
+                view: {
+                    dblClickExpand: false,
+                    showLine: true,
+                    expandSpeed: 1,
+                },
+                data: {
+                    simpleData: {
+                        enable: true
+                    }
+                },
+                edit: {
+                    enable: true,
+                    showRemoveBtn: false,
+                    showRenameBtn: false,
+                    drag: {
+                        isCopy: true,
+                        isMove: true
+                    }
+                },
+                callback: {
+                    onRightClick: OnRightClick,
+                    beforeRightClick: beforeRightClick,
+                    beforeClick: beforeClick,
+                    onRename: onRename,
+                    onSelected: onSelected,
+                    beforeDrag: beforeDrag,
+                    onDrag: onDrag,
+                    beforeDrop: beforeDrop,
+                    onDrop: onDrop
+                }
+            };
+
+            let zNodes = [];
+            $.get("{{ url_for('api_assets.api_assets_tree_node_list') }}", function (data, status) {
+                /* 通过assets.node_list路由获取所有左侧节点信息 */
+                if (status === "success") {
+                    data = data.data;
+                    $.each(data, function (index, value) {
+                        value["node_id"] = value["id"];
+                        value["id"] = value["tree_id"];
+                        if (value["tree_id"] !== value["tree_parent"]) {
+                            value["pId"] = value["tree_parent"];
+                        } else {
+                            value["isParent"] = true;
+                        }
+                        value["name"] = value["value"] + ' (' + value['assets_amount'] + ')';
+                        value['value'] = value['value'];
+                    });
+                    zNodes = data;
+                    /* console.log(zNodes); */
+                    $.fn.zTree.init($("#assetTree"), setting, zNodes);
+                    zTree = $.fn.zTree.getZTreeObj("assetTree");
+                    let root = zTree.getNodes()[0];
+                    zTree.expandNode(root);
+                    if (typeof(currentNodeTid) !== "undefined" && typeof(parentNodeTid) !== "undefined") {
+                        if (zTree.getNodeByTId(parentNodeTid).value === "YALA") {
+                            zTree.expandNode(zTree.getNodeByTId(currentNodeTid), true);
+                            zTree.selectNode(zTree.getNodeByTId(currentNodeTid));
+                        } else {
+                            zTree.expandNode(zTree.getNodeByTId(parentNodeTid), true);
+                            zTree.selectNode(zTree.getNodeByTId(currentNodeTid));
+                        }
+                    }
+                    rMenu = $("#rMenu");
+                    selectQueryNode();
+                } else {
+                    swal({
+                        type: 'error',
+                        title: '初始化服务树失败',
+                        text: status,
+                        showConfirmButton: true
+                    });
+                }
+            });
+        }
+
+        function editTreeNode() {
+            hideRMenu();
+            let current_node = zTree.getSelectedNodes()[0];
+            if (!current_node) {
+                return
+            }
+            if (current_node.value) {
+                current_node.name = current_node.value;
+            }
+            zTree.editName(current_node);
+        }
+
+        function onRename(event, treeId, treeNode, isCancel) {
+            /* 函数功能测试正常 */
+            let url = '';
+
+            if (treeNode.tree_parent === '0') {
+                url = "{{ url_for('api_assets.api_assets_department') }}"
+            } else {
+                url = "{{url_for('api_assets.api_assets_service')}}"
+            }
+
+            if (isCancel) {
+                return
+            }
+
+            $.ajax({
+               url: url,
+               data: {
+                 'modify_name': treeNode.name,
+                 'modify_id': treeNode.id,
+               },
+                timeout: 10000,
+                type: 'put',
+                success: function (response) {
+                   if (response.resCode === 1){
+                       swal({
+                           type: 'success',
+                           title: '修改成功',
+                           showConfirmButton: false,
+                           timer: 1000
+                       });
+                       let currentNodeTid = zTree.getSelectedNodes()[0].tId;
+                       let parentNodeTid = zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().tId : zTree.getSelectedNodes()[0].tId;
+                       initTree(currentNodeTid, parentNodeTid);
+                   }
+                   else {
+                       swal({
+                           type: 'error',
+                           title: '修改失败',
+                           text: response.errMsg,
+                           showConfirmButton: true
+                       });
+                   }
+                }
+            });
+        }
+
+        function removeTreeNode() {
+            /* 函数功能测试正常 */
+            hideRMenu();
+            let current_node = zTree.getSelectedNodes()[0];
+            if (!current_node) {
+                return
+            }
+            if (current_node.children && current_node.children.length > 0) {
+                swal({
+                    type: 'error',
+                    text: '该节点下含有子节点',
+                    title: '删除失败',
+                    showConfirmButton: true,
+                });
+            } else if (current_node.assets_amount !== 0 && typeof(current_node.assets_amount) !== "undefined") {
+                swal({
+                    type: 'error',
+                    text: '该节点下含有资产',
+                    title: '删除失败',
+                    showConfirmButton: true,
+                });
+            } else {
+                let url = '';
+
+                if (current_node.tree_parent === '0' || current_node.pId === '0') {
+                    url = "{{url_for('api_assets.api_assets_department')}}"
+                } else {
+                    url = "{{url_for('api_assets.api_assets_service')}}"
+                }
+
+                $.ajax({
+                    url: url,
+                    data: {
+                        'delete_id': current_node.id,
+                    },
+                    timeout: 10000,
+                    type: 'delete',
+                    success: function (response) {
+                        if (response.resCode === 1) {
+                            swal({
+                                type: 'success',
+                                title: '删除成功',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                            zTree.removeNode(current_node);
+                        } else {
+                            swal({
+                                type: 'error',
+                                title: '删除',
+                                text: response.errMsg,
+                                showConfirmButton: true
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        function addTreeNode() {
+            hideRMenu();
+            let parentNode = zTree.getSelectedNodes()[0];
+            if (!parentNode) {
+                return
+            }
+
+            let url = '';
+
+            if (parentNode.id === '0') {
+                url = "{{url_for('api_assets.api_assets_department')}}"
+            } else {
+                url = "{{url_for('api_assets.api_assets_service')}}"
+            }
+
+            $.post(url, {'parent_id': parentNode.id}, function (data, status) {
+                if (status === "success") {
+                    let serviceInfo = data.resData;
+                    let newNode = {
+                        id: data["key"],
+                        name: data["value"],
+                        node_id: data["id"],
+                        pId: parentNode.id
+                    };
+                    if (zTree.getSelectedNodes()[0]) {
+                        newNode.checked = zTree.getSelectedNodes()[0].checked;
+                        //zTree.addNodes(zTree.getSelectedNodes()[0], newNode);
+                        zTree.addNodes(parentNode, -1, newNode);
+                        let node = zTree.getNodeByParam('id', newNode.node_id, parentNode);
+                        zTree.editName(node);
+                        let currentNodeTid = zTree.getSelectedNodes()[0].tId;
+                        let parentNodeTid = zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().tId : zTree.getSelectedNodes()[0].tId;
+                        initTree(currentNodeTid, parentNodeTid);
+                    } else {
+                        zTree.addNodes(null, newNode);
+                    }
+                } else {
+                    swal({
+                        type: 'error',
+                        title: '添加失败',
+                        text: data.errMsg,
+                        showConfirmButton: true
+                    }).then(function () {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
+
+        /**
+         * @return {boolean}
+         */
+        function OnRightClick(event, treeId, treeNode) {
+            if (({{ current_user.role.name|tojson }}) === 'RD') {
+                if (treeNode != null) {
+                    treeNode.noR = true;
+                }
+                return false;
+            }
+
+            if (treeNode && event.target.tagName.toLowerCase() !== "button" && $(event.target).parents("a").length === 0) {
+                zTree.cancelSelectedNode();
+                showRMenu("root", event.clientX, event.clientY);
+            } else if (treeNode && !treeNode.noR) {
+                zTree.selectNode(treeNode);
+                showRMenu("node", event.clientX, event.clientY);
+            }
+        }
+
+        function showRMenu(type, x, y) {
+            $("#rMenu ul").show();
+            {#x -= 220;#}
+            x -= 10;
+            x += document.body.scrollLeft;
+            y += document.body.scrollTop + document.documentElement.scrollTop;
+            rMenu.css({"top": y + "px", "left": x + "px", "visibility": "visible"});
+
+            $("body").bind("mousedown", onBodyMouseDown);
+        }
+
+        function beforeRightClick(treeId, treeNode, clickFlag) {
+            if (treeNode != null) {
+                if (treeNode.level === 2) {
+                    //treeNode.noR = true;
+                    $("#m_create").css("display", "none");
+                } else {
+                    $("#m_create").css("display", "block");
+                }
+
+                if (treeNode.level === 0) {
+                    $("#m_mod").css("display", "none");
+                    $("#m_del").css("display", "none");
+                } else {
+                    $("#m_mod").css("display", "block");
+                    $("#m_del").css("display", "block");
+                }
+            }
+
+            return true;
+        }
+
+        function beforeClick(treeId, treeNode, clickFlag) {
+            return true;
+        }
+
+        function onSelected(event, treeNode) {
+            let svcVal = '';
+            let dptVal = '';
+
+            if (treeNode.tree_parent === '0') {
+                dptVal = treeNode.value;
+            } else if (treeNode.value === 'YALA') {
+            } else {
+                dptVal = treeNode.getParentNode().value;
+                svcVal = treeNode.value;
+            }
+
+            $('#hostListTbl').bootstrapTable('refresh', {
+                url: "{{ url_for('api_assets.api_assets_host_list') }}",
+                silent: true,
+                query: {
+                    service: svcVal,
+                    use_dpt: dptVal,
+                }
+            });
+            return true;
+        }
+
+        function beforeDrag() {
+            return true
+        }
+
+        function beforeDrop(treeId, treeNodes, targetNode, moveType) {
+            if (({{ current_user.role.name|tojson }}) === 'RD') {
+                if (treeNodes != null) {
+                    treeNodes.noR = true;
+                }
+                return false;
+            }
+
+            /* 用于捕获节点拖拽操作结束之前的事件回调函数，并且根据返回值确定是否允许此拖拽操作 */
+            let treeNodesNames = [];
+            $.each(treeNodes, function (index, value) {
+                treeNodesNames.push(value.value);
+            });
+
+            let msg = "你想移动节点: `" + treeNodesNames.join(",") + "` 到 `" + targetNode.value + "` 下吗?";
+            return confirm(msg);
+        }
+
+        function onDrag(event, treeId, treeNodes) {
+        }
+
+        function onDrop(event, treeId, treeNodes, targetNode, moveType) {
+            /* 用于捕获节点拖拽操作结束的事件回调函数
+            如果设置了 setting.callback.beforeDrop 方法，且返回 false，将无法触发 onDrop 事件回调函数 */
+
+            if (treeNodes.length !== 1) {
+                return swal("不能同时拖拽多个节点!");
+            }
+
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_service_move')}}",
+                data: {
+                    old_service_id: treeNodes[0].tree_id,
+                    new_department_id : targetNode.tree_id
+                },
+                traditional: true,
+                timeout: 10000,
+                type: 'post',
+
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        /* window.location.reload(); */
+                        initTree(currentNodeTid, parentNodeTid);
+                    }
+                    else {
+                        swal("移动失败", response.errMsg, "error");
+                        setTimeout(function() {
+                            initTree(currentNodeTid, parentNodeTid);
+                          /* window.location.reload(); */
+                        }, 2000);
+                    }
+                }
+            })
+
+        }
+
+        function hideRMenu() {
+            if (rMenu) rMenu.css({"visibility": "hidden"});
+            $("body").unbind("mousedown", onBodyMouseDown);
+        }
+
+        function onBodyMouseDown(event) {
+            if (!(event.target.id === "rMenu" || $(event.target).parents("#rMenu").length > 0)) {
+                rMenu.css({"visibility": "hidden"});
+            }
+        }
+
+        function selectQueryNode() {
+            let query_node_id = $.getUrlParam("node");
+            let cookie_node_id = getCookie('node_selected');
+            let node;
+            let node_id;
+
+            if (query_node_id !== null) {
+                node_id = query_node_id
+            } else if (cookie_node_id !== null) {
+                node_id = cookie_node_id;
+            }
+
+            node = zTree.getNodesByParam("node_id", node_id, null);
+            if (node) {
+                zTree.selectNode(node[0]);
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                let cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = jQuery.trim(cookies[i]);
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        // break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        $(function () {
+            (function ($) {
+                $.getUrlParam = function (name) {
+                    let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+                    let r = window.location.search.substr(1).match(reg);
+                    if (r != null) return unescape(r[2]);
+                    return null;
+                }
+            })(jQuery);
+        });
+
+        function getUrlParam(name) {
+            let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            let r = window.location.search.substr(1).match(reg);
+            if (r != null) return unescape(r[2]);
+            return null;
+        }
+
+        function setUrlParam(url, name, value) {
+            let urlArray = url.split("?");
+            if (urlArray.length === 1) {
+                url += "?" + name + "=" + value;
+            } else {
+                let oriParam = urlArray[1].split("&");
+                let oriParamMap = {};
+                $.each(oriParam, function (index, value) {
+                    let v = value.split("=");
+                    oriParamMap[v[0]] = v[1];
+                });
+                oriParamMap[name] = value;
+                url = urlArray[0] + "?";
+                let newParam = [];
+                $.each(oriParamMap, function (index, value) {
+                    newParam.push(index + "=" + value);
+                });
+                url += newParam.join("&")
+            }
+            return url
+        }
+
+        function show_delete_host_modal(host_id) {
+            data.host_id = host_id;
+            $('.delete-host-modal').modal('show');
+        }
+
+        function show_modify_host_modal(host_id, service_id, user_id) {
+            $('.modify-host-modal').modal({show: true}, {
+                host_id: host_id,
+                service_id: service_id,
+                user_id: user_id
+            });
+            data.host_id = host_id;
+            load_host_info(host_id);
+            load_department_list();
+            load_service_list();
+        }
+
+        /* 加载主机的详细信息 */
+        function jump_to_host_detail(host_id) {
+            window.location.href = '/assets/host/detail?host_id=' + host_id
+        }
+
+        data = {
+            upload_file: '',
+            search: '',
+            host_id: '',
+            innerIP: '',
+            outerIP: '',
+            elasticIP: '',
+            hostname: '',
+            add_service: '',
+            os: '',
+            cpu: '',
+            memory: '',
+            disk: '',
+            device: '',
+            use_dpt: '',
+            user: '',
+            operator: '',
+            owner_dpt: '',
+            host_model: '',
+            service: '',
+            cabinet: '',
+            create_date: '',
+            payment: '',
+            host_status: '',
+            comment: '',
+            new_host_innerIP: '',
+            new_host_outerIP: '',
+            new_host_elasticIP: '',
+            new_hostname: '',
+            new_host_cpu: '',
+            new_host_memory: '',
+            new_host_disk: '',
+            new_device_info: '',
+            new_use_dpt_info: '',
+            new_user_info: '',
+            new_operator_info: '',
+            new_owner_dpt_info: '',
+            new_service_info: '',
+            new_cabinet_info: '',
+            new_create_date: '',
+            new_payment_type: '',
+            new_host_status: '',
+            new_comment: '',
+            old_innerIP: '',
+            old_outerIP: '',
+            old_elasticIP: '',
+            old_hostname: '',
+            old_cpu: '',
+            old_memory: '',
+            old_disk: '',
+            old_os: '',
+            old_device: '',
+            old_use_dpt: '',
+            old_user: '',
+            old_owner_dpt: '',
+            old_operator: '',
+            old_host_model: '',
+            old_service: '',
+            old_cabinet: '',
+            old_create_date: '',
+            old_payment: '',
+            old_host_status: '',
+            old_comment: '',
+            ip_status: '',
+            device_list: [],
+            dpt_list: [],
+            operator_list: [],
+            user_list: [],
+            cabinet_list: [],
+            service_list: [],
+            node_list: [],
+            use_dpt_name: '',
+            service_info: '',
+            dpt_name: '',
+            use_dpt_info: '',
+            modify_service: '',
+            errMsg: '',
+            errMsg2: '',
+        };
+
+        $("#inputInnerIP").blur(function () {
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_ip_check')}}",
+                data: {
+                    'innerIP': $.trim($("#inputInnerIP").val())
+                },
+                timeout: 10000,
+                type: 'post',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        if (response.status === 'False') {
+                            data.errMsg2 = '此IP已经被占用！';
+                            return false;
+                        } else {
+                            data.ip_status = response.status;
+                            data.errMsg2 = '';
+                        }
+                    } else {
+                        data.errMsg2 = 'IP池中无此IP！';
+                        return false;
+                    }
+                },
+            })
+        });
+
+        function upload_host_file() {
+            /* 函数功能未验证 */
+            if ($.trim(data.upload_file).length === 0) {
+                data.errMsg2 = '请先上传要导入的文件！';
+                return false;
+            }
+            let options = {
+                type: 'POST',
+                url: "{{url_for('api_assets.api_assets_host_file')}}",
+                resetForm: true,
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '导入成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            window.location.reload();
+                        })
+                    } else {
+                        swal({
+                            type: 'error',
+                            title: '导入失败',
+                            text: response.errMsg,
+                            showConfirmButton: true
+                        })
+                    }
+                },
+                error: function (response) {
+                    $.notify({
+                            title: "<strong>主机导入错误:</strong><br>",
+                            message: response.errMsg
+                        },
+                        {
+                            type: 'danger',
+                            delay: 3600000
+                        });
+                }
+            };
+            $('#upload_form').ajaxSubmit(options);
+            $('.multi-import-host-modal').modal('hide');
+        }
+
+        new Vue({
+            el: '.list',
+            data: data,
+            watch: {
+                dpt_name(oVal, nVal) {
+                    console.log("val: " + nVal)
+                }
+            },
+            methods: {
+                add_host: function () {
+                    let innerIP = this.new_host_innerIP;
+                    let outerIP = this.new_host_outerIP;
+                    let elasticIP = this.new_host_elasticIP;
+                    let hostname = this.new_hostname;
+                    let cpu = this.new_host_cpu;
+                    let memory = this.new_host_memory;
+                    let disk = this.new_host_disk;
+                    let device = this.new_device_info;
+                    let use_dpt = this.new_use_dpt_info;
+                    //user = this.new_user_info;
+                    let user = $('#add_user_select').val();
+                    let operator = this.new_operator_info;
+                    let owner_dpt = this.new_owner_dpt_info;
+                    //service = this.new_service_info;
+                    let service = $('#add_service_select').val();
+                    let cabinet = this.new_cabinet_info;
+                    let create_date = this.new_create_date;
+                    let payment = this.new_payment_type;
+                    let status = this.new_host_status;
+                    let comment = this.new_comment;
+                    add_host(innerIP, outerIP, elasticIP, hostname, cpu, memory, disk, device, use_dpt, user, operator, owner_dpt, service, cabinet, create_date, payment, status, comment);
+                },
+
+                getModelListByBrandId: function (brand_id) {
+                    /* let modelLists = this.model_list.filter(function (model) {
+                        return model.brand_id === brand_id
+                    }); */
+                    return this.model_list.filter(function (model) {
+                        return model.brand_id === brand_id
+                    });
+                },
+
+                show_delete_host_modal: function (host_id) {
+                    this.host_id = host_id;
+                    $('.delete-host-modal').modal('show');
+                },
+
+                delete_host: function () {
+                    delete_host(this.host_id);
+                    $('.delete-host-modal').modal('hide');
+                },
+
+                show_modify_host_modal: function (host_id) {
+                    $('.modify-host-modal').modal('show');
+                    this.host_id = host_id;
+                    load_host_info(host_id)
+                },
+
+                modify_host: function () {
+                    let host_id = this.host_id;
+                    let innerIP = this.innerIP;
+                    let outerIP = this.outerIP;
+                    let elasticIP = this.elasticIP;
+                    let hostname = this.hostname;
+                    let cpu = this.cpu;
+                    let memory = this.memory;
+                    let disk = this.disk;
+                    let device = this.device;
+                    let use_dpt = this.use_dpt;
+                    //user = this.user;
+                    let user = $('#modify_user_select').val();
+                    let operator = this.operator;
+                    let owner_dpt = this.owner_dpt;
+                    //service = this.service;
+                    let service = $('#modify_service_select').val();
+                    let cabinet = this.cabinet;
+                    let create_date = this.create_date;
+                    let payment = this.payment;
+                    let host_status = this.host_status;
+                    let comment = this.comment;
+                    modify_host(host_id, innerIP, outerIP, elasticIP, hostname, cpu, memory, disk, device, use_dpt, user, operator, owner_dpt, service, cabinet, create_date, payment, host_status, comment);
+                    //$('.modify-host-modal').modal('hide');
+                },
+
+                getSvcListByDptName: function (dpt_name) {
+                    return this.service_list.filter(function (service) {
+                        return service.dpt_name === dpt_name
+                    });
+                },
+                getSvcListByDptID: function (dpt_id) {
+                    return this.service_list.filter(function (service) {
+                        return service.dpt_id == dpt_id
+                    });
+                },
+            }
+        });
+
+        function notifyMsg(msg) {
+            return $.notify({
+                // options
+                icon: 'glyphicon glyphicon-warning-sign',
+                title: '警告',
+                message: msg,
+                target: '_blank'
+            }, {
+                // settings
+                element: 'body',
+                position: null,
+                type: "warning",
+                allow_dismiss: true,
+                newest_on_top: true,
+                showProgressbar: false,
+                placement: {
+                    from: "bottom",
+                    align: "center"
+                },
+                offset: 20,
+                spacing: 10,
+                z_index: 1031,
+                delay: 5000,
+                timer: 1000,
+                url_target: '_blank'
+            });
+        }
+
+        function delete_host(host_id) {
+            /* 函数功能测试正常 */
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_host')}}",
+                data: {'host_id': host_id},
+                timeout: 10000,
+                type: 'delete',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '删除成功!',
+                            showConfirmButton: false,
+                            timer: 1000
+                        }).then(function () {
+                            if (typeof (zTree.getSelectedNodes()[0]) !== "undefined") {
+                                $('#hostListTbl').bootstrapTable('refresh', {
+                                    url: '{{ url_for('api_assets.api_assets_host_list') }}',
+                                    silent: true,
+                                    query: {
+                                        service: zTree.getSelectedNodes()[0].value,
+                                        use_dpt: zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().value : "YALA",
+                                    }
+                                });
+                                let currentNodeTid = zTree.getSelectedNodes()[0].tId;
+                                let parentNodeTid = zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().tId : zTree.getSelectedNodes()[0].tId;
+                                initTree(currentNodeTid, parentNodeTid);
+                            } else {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        swal("删除失败", response.errMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function modify_host(host_id, innerIP, outerIP, elasticIP, hostname, cpu, memory, disk, device, use_dpt, user, operator, owner_dpt, service, cabinet, create_date, payment, host_status, comment) {
+            /* 函数功能测试正常 */
+            if ($.trim(innerIP).length === 0) {
+                data.errMsg = '内网IP不能为空！';
+                return;
+            }
+            /*if($.trim(innerIP).length == 0 && $.trim(outerIP).length == 0){
+                data.errMsg = '内网或者外网IP至少有一个不能为空！';
+                return;
+            }*/
+            if ($.trim(hostname).length === 0) {
+                data.errMsg = '主机名不能为空！';
+                return;
+            }
+            /*if ($.trim(cpu).length == 0) {
+                data.errMsg = 'CPU不能为空！';
+                return;
+            }
+            if ($.trim(memory).length == 0) {
+                data.errMsg = '内存不能为空！';
+                return;
+            }
+            if(!device){
+                data.errMsg = '设备信息不能为空！';
+                return;
+            }*/
+            if (!use_dpt) {
+                data.errMsg = '使用部门不能为空！';
+                return;
+            }
+            if (!user) {
+                data.errMsg = '使用人不能为空！';
+                return;
+            }
+            if (!operator) {
+                data.errMsg = '运维人员不能为空！';
+                return;
+            }
+            if (!owner_dpt) {
+                data.errMsg = '所属部门不能为空！';
+                return;
+            }
+            if ($.trim(service).length === 0) {
+                data.errMsg = '请选择服务！';
+                return;
+            }
+            if ($.trim(create_date).length === 0) {
+                data.errMsg = '创建日期不能为空！';
+                return;
+            }
+            /*if (!payment) {
+                data.errMsg = '支付方式不能为空！';
+                return;
+            }*/
+            if (!host_status) {
+                data.errMsg = '状态不能为空！';
+                return;
+            }
+            if (data.errMsg2) {
+                return;
+            }
+            /* 对修改前后的数据进行对比，避免没有修改而造成数据库操作 */
+            if ($.trim(innerIP) === data.old_innerIP && $.trim(outerIP) === data.old_outerIP && $.trim(elasticIP) === data.old_elasticIP && $.trim(hostname) === data.old_hostname && $.trim(cpu) === data.old_cpu && $.trim(memory) === data.old_memory && $.trim(disk) === data.old_disk && $.trim(device) === data.old_device && $.trim(use_dpt) === data.old_use_dpt && $.trim(user) === data.old_user && $.trim(operator) === data.old_operator && $.trim(owner_dpt) === data.old_owner_dpt && $.trim(service) === data.old_service && $.trim(cabinet) === data.old_cabinet && $.trim(create_date) === data.old_create_date && $.trim(payment) === data.old_payment && $.trim(host_status) === data.old_host_status && $.trim(comment) === data.old_comment) {
+                return;
+            } else {
+                let commit_data = {
+                    "host_id": host_id,
+                    "innerIP": innerIP,
+                    "outerIP": outerIP,
+                    "elasticIP": elasticIP,
+                    "hostname": hostname,
+                    "cpu": cpu,
+                    "memory": memory,
+                    "disk": disk,
+                    "device": device,
+                    "use_dpt": use_dpt,
+                    "user": user,
+                    "operator": operator,
+                    "owner_dpt": owner_dpt,
+                    "service": service,
+                    "cabinet": cabinet,
+                    "create_date": create_date,
+                    "payment": payment,
+                    "host_status": host_status,
+                    "comment": comment,
+                };
+                $.ajax({
+                    url: "{{url_for('api_assets.api_assets_host')}}",
+                    data: {'data': JSON.stringify(commit_data)},
+                    timeout: 10000,
+                    type: 'put',
+                    success: function (response) {
+                        if (response.resCode === 1) {
+                            swal({
+                                type: 'success',
+                                title: '修改成功',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(function () {
+                                if (typeof(zTree.getSelectedNodes()[0]) !== "undefined") {
+                                    $('#hostListTbl').bootstrapTable('refresh', {
+                                        url: '{{ url_for('api_assets.api_assets_host_list') }}',
+                                        silent: true,
+                                        query: {
+                                            service: zTree.getSelectedNodes()[0].value,
+                                            use_dpt: zTree.getSelectedNodes()[0].getParentNode().value,
+                                        }
+                                    });
+                                    let currentNodeTid = zTree.getSelectedNodes()[0].tId;
+                                    let parentNodeTid = zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().tId : zTree.getSelectedNodes()[0].tId;
+                                    initTree(currentNodeTid, parentNodeTid);
+                                } else {
+                                    window.location.reload();
+                                }
+                            });
+                            $('.modify-host-modal').modal('hide');
+                        } else {
+                            swal("修改失败", response.errMsg, "error");
+                        }
+                    },
+                    error: function (response) {
+                        $.notify({
+                                title: "<strong>主机修改错误:</strong><br>",
+                                message: response.responseText
+                            },
+                            {
+                                type: 'danger',
+                                delay: 3600000
+                            });
+                    }
+                })
+            }
+        }
+
+        function add_host(innerIP, outerIP, elasticIP, hostname, cpu, memory, disk, device, use_dpt, user, operator, owner_dpt, service, cabinet, create_date, payment, status, comment) {
+            /* 函数功能测试正常 */
+            if ($.trim(innerIP).length === 0) {
+                data.errMsg = '请输入内网IP！';
+                return;
+            }
+            if (data.errMsg2) {
+                return;
+            }
+            /*if ($.trim(outerIP).length == 0) {
+                data.errMsg = '请输入外网IP！';
+                return false;
+            }
+            if ($.trim(elasticIP).length == 0) {
+                data.errMsg = '请输入弹性IP！';
+                return false;
+            }*/
+            if ($.trim(hostname).length === 0) {
+                data.errMsg = '请输入主机名！';
+                return;
+            }
+            /*if ($.trim(cpu).length == 0) {
+                data.errMsg = '请输入CPU信息！';
+                return;
+            }
+            if ($.trim(memory).length == 0) {
+                data.errMsg = '请输入内存信息！';
+                return;
+            }
+            if ($.trim(disk).length == 0) {
+                data.errMsg = '请输入磁盘信息！';
+                return;
+            }
+            if ($.trim(device).length == 0) {
+                data.errMsg = '请选择设备信息！';
+                return;
+            }*/
+            if ($.trim(use_dpt).length === 0) {
+                data.errMsg = '请选择使用部门！';
+                return;
+            }
+            if ($.trim(user).length === 0) {
+                data.errMsg = '请选择使用人！';
+                return;
+            }
+            if ($.trim(operator).length === 0) {
+                data.errMsg = '请选择运维人员！';
+                return;
+            }
+            if ($.trim(owner_dpt).length === 0) {
+                data.errMsg = '请选择所属部门！';
+                return;
+            }
+            if ($.trim(service).length === 0) {
+                data.errMsg = '请选择服务！';
+                return;
+            }
+            /*if ($.trim(cabinet).length == 0) {
+                data.errMsg = '请选择位置信息！';
+                return;
+            }*/
+            if ($.trim(create_date).length === 0) {
+                data.errMsg = '请选择创建日期！';
+                return;
+            }
+            /*if ($.trim(payment).length == 0) {
+                data.errMsg = '请选择支付方式！';
+                return;
+            }*/
+            if ($.trim(status).length === 0) {
+                data.errMsg = '请选择主机状态！';
+                return;
+            }
+            let commit_data = {
+                "innerIP": $.trim(innerIP),
+                "outerIP": $.trim(outerIP),
+                "elasticIP": $.trim(elasticIP),
+                "hostname": $.trim(hostname),
+                "cpu": $.trim(cpu),
+                "memory": $.trim(memory),
+                "disk": $.trim(disk),
+                "device": $.trim(device),
+                "use_dpt": $.trim(use_dpt),
+                "user": $.trim(user),
+                "operator": $.trim(operator),
+                "owner_dpt": $.trim(owner_dpt),
+                "service": $.trim(service),
+                "cabinet": $.trim(cabinet),
+                "create_date": $.trim(create_date),
+                "payment": $.trim(payment),
+                "status": $.trim(status),
+                "comment": $.trim(comment),
+            };
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_host')}}",
+                data: {'data': JSON.stringify(commit_data)},
+                timeout: 10000,
+                type: 'post',
+                success: function (response) {
+                    $('.add-host-modal').modal('hide');
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '添加成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            if (typeof(zTree.getSelectedNodes()[0]) !== "undefined") {
+                                $('#hostListTbl').bootstrapTable('refresh', {
+                                    url: "{{ url_for('api_assets.api_assets_host_list') }}",
+                                    silent: true,
+                                    query: {
+                                        service: zTree.getSelectedNodes()[0].value,
+                                        use_dpt: zTree.getSelectedNodes()[0].getParentNode().value,
+                                    }
+                                });
+                                let currentNodeTid = zTree.getSelectedNodes()[0].tId;
+                                let parentNodeTid = zTree.getSelectedNodes()[0].value !== "YALA" ? zTree.getSelectedNodes()[0].getParentNode().tId : zTree.getSelectedNodes()[0].tId;
+                                initTree(currentNodeTid, parentNodeTid);
+                            } else {
+                                window.location.reload();
+                            }
+                        })
+                    } else {
+                        swal("添加失败", response.errMsg, "error");
+                    }
+                },
+                error: function (response) {
+                    $.notify({
+                            title: "<strong>主机添加错误:</strong><br>",
+                            message: response.responseText
+                        },
+                        {
+                            type: 'danger',
+                            delay: 3600000
+                        });
+                }
+            })
+        }
+
+        function load_host_info(host_id) {
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_host')}}",
+                data: {
+                    'host_id': host_id
+                },
+                timeout: 10000,
+                type: 'get',
+                success: function (response) {
+                    let host_info = response.resData;
+                    data.innerIP = host_info.innerIP;
+                    data.outerIP = host_info.outerIP;
+                    data.elasticIP = host_info.elasticIP;
+                    data.hostname = host_info.hostname;
+                    data.cpu = host_info.cpu;
+                    data.memory = host_info.memory;
+                    data.disk = host_info.disk;
+                    data.os = host_info.os;
+                    data.device = host_info.device;
+                    data.use_dpt = host_info.use_dpt;
+                    data.user = host_info.user;
+                    data.owner_dpt = host_info.owner_dpt;
+                    data.operator = host_info.operator;
+                    data.host_model = host_info.host_model;
+                    data.service = host_info.service;
+                    data.cabinet = host_info.cabinet;
+                    data.create_date = host_info.create_date;
+                    data.payment = host_info.payment;
+                    data.host_status = host_info.host_status;
+                    data.comment = host_info.comment;
+                    data.old_innerIP = host_info.innerIP;
+                    data.old_outerIP = host_info.outerIP;
+                    data.old_elasticIP = host_info.elasticIP;
+                    data.old_hostname = host_info.hostname;
+                    data.old_cpu = host_info.cpu;
+                    data.old_memory = host_info.memory;
+                    data.old_disk = host_info.disk;
+                    data.old_os = host_info.os;
+                    data.old_device = host_info.device;
+                    data.old_use_dpt = host_info.use_dpt;
+                    data.old_user = host_info.user;
+                    data.old_owner_dpt = host_info.owner_dpt;
+                    data.old_operator = host_info.operator;
+                    data.old_host_model = host_info.host_model;
+                    data.old_service = host_info.service;
+                    data.old_cabinet = host_info.cabinet;
+                    data.old_create_date = host_info.create_date;
+                    data.old_payment = host_info.payment;
+                    data.old_host_status = host_info.host_status;
+                    data.old_comment = host_info.comment;
+                }
+            })
+        }
+
+        function load_department_list() {
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_department_list')}}",
+                timeout: 10000,
+                type: 'get',
+                success: function (response) {
+                    if (response.resCode === 1){
+                        data.dpt_list = response.resData;
+                    }
+                }
+            })
+        }
+
+        function load_operator_list() {
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_operator_list')}}",
+                timeout: 10000,
+                type: 'get',
+                success: function (response) {
+                    if (response.resCode === 1){
+                        data.operator_list = response.resData;
+                    }
+                }
+            })
+        }
+
+        function load_user_list() {
+            $.ajax({
+                url: "{{url_for('api_user.api_user_user_list')}}",
+                timeout: 10000,
+                type: 'get',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        data.user_list = response.resData;
+                    }
+                }
+            })
+        }
+
+        function load_service_list() {
+            $.ajax({
+                url: "{{url_for('api_assets.api_assets_service_list')}}",
+                timeout: 10000,
+                type: 'get',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        data.service_list = response.resData;
+                    }
+                }
+            })
+        }
+    </script>
+{% endblock %}

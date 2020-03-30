@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+{% import "page.html" as page %}
+{% block content %}
+    <div id="user_list" class="content-wrapper list">
+        <section class="content-header">
+            <h1>
+                权限管理
+                <small>
+                    默认每页显示25条数据
+                </small>
+            </h1>
+            <ol class="breadcrumb">
+                <li><a href="{{ url_for('index.index') }}"><i class="fa fa-dashboard"></i> Home</a></li>
+                <li> 权限管理 </li>
+                <li class="active"> 用户管理</li>
+            </ol>
+        </section>
+        <!-- Main content -->
+        <section class="content">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            用户列表
+                            <button type="button" class="btn btn-primary btn-sm" style="float:right;margin-top:-5px"
+                                    data-target=".add-user-modal" data-toggle="modal">增加用户
+                            </button>
+                            <div class="modal fade add-user-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel">增加用户</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="inputUserName2"
+                                                           class="col-sm-2 control-label">用户名</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputUserName2"
+                                                               placeholder="用户名" v-model="username">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputUserFullName"
+                                                           class="col-sm-2 control-label">姓名</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputUserFullName"
+                                                               placeholder="姓名" v-model="fullname">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputPassword3"
+                                                           class="col-sm-2 control-label">密码</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="password" class="form-control" id="inputPassword3"
+                                                               placeholder="密码" v-model="password">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputPassword4"
+                                                           class="col-sm-2 control-label">密码确认</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="password" class="form-control" id="inputPassword4"
+                                                               placeholder="密码确认" v-model="password2">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputEmail2" class="col-sm-2 control-label">邮箱</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputEmail2"
+                                                               placeholder="邮箱" v-model="email">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label" for="inputRole2">选择角色</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control col-sm-8" id="inputRole2"
+                                                                v-model="role_name">
+                                                            <option v-for="line in role_list" value="${line.role_id}"
+                                                                    v-text="line.role_name"></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg"
+                                                 v-text="errMsg"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="add_user()">提交
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <form id="user_search_form" method="post" action="{{ url_for('user.user_user') }}"
+                                  class="row">
+                                <div class="col-md-4 pull-right" style="margin-right:-15px;margin-bottom:5px">
+                                    <div class="input-group">
+                                        <input id="search_keyword" type="text" name="search" class="form-control"
+                                               value="{{ search }}" placeholder="搜索"
+                                               v-model="search">
+                                        <input type="hidden" class="form-control" name="type" value="user_search">
+                                        <span class="input-group-btn">
+                                           <input type="submit" onclick="return check_search()"
+                                                  class="btn btn-info btn-search" value="搜索">
+                                        </span>
+                                    </div>
+                                </div>
+                            </form>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>用户名</th>
+                                        <th>姓名</th>
+                                        <th>邮箱</th>
+                                        <th>角色</th>
+                                        {% if current_user.role.name == 'Admin' %}
+                                            <th>操作</th>
+                                        {% endif %}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for user in users %}
+                                        <tr>
+                                            <td>{{ user.name }}</td>
+                                            <td>{{ user.fullname }}</td>
+                                            <td>{{ user.email }}</td>
+                                            <td>{{ user.role.name }}</td>
+                                            {% if current_user.role.name == 'Admin' %}
+                                                <td><span class="label label-success"
+                                                          style="margin-right:10px;cursor:pointer" data-toggle="modal"
+                                                          @click="modify_user_id='{{ user.id }}',modify_username='{{ user.name }}',modify_fullname='{{ user.fullname }}',modify_email='{{ user.email }}',modify_role_id='{{ user.role.id }}'"
+                                                          data-target=".modify-user-modal">修改
+                                                    </span>
+                                                    <span
+                                                        class="label label-danger"
+                                                        style="margin-right:10px;cursor:pointer"
+                                                        @click="show_delete_user_modal('{{ user.id }}')">删除
+                                                    </span>
+                                                </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% if pagination %}
+                                <div class="pagination" style="float:right">
+                                    {{ page.pagination_widget(pagination,"user.user_user",search=search) }}
+                                </div>
+                            {% endif %}
+                            <div class="modal fade delete-user-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel4" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel4">删除用户</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label style="text-align: center" class="col-sm-5 control-label">确认是否删除该用户?</label>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="delete_user()">删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal fade modify-user-modal" tabindex="-1" role="dialog"
+                                 aria-labelledby="myModalLabel2" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span></button>
+                                            <h4 class="modal-title" id="myModalLabel2">用户修改</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form class="form-horizontal">
+                                                <div class="form-group">
+                                                    <label for="inputUserName"
+                                                           class="col-sm-2 control-label">用户名</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputUserName"
+                                                               placeholder="用户名" v-model="modify_username">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputFullName" class="col-sm-2 control-label">姓名</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputFullName"
+                                                               placeholder="姓名" v-model="modify_fullname">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="inputEmail" class="col-sm-2 control-label">邮箱</label>
+                                                    <div class="col-sm-10">
+                                                        <input type="text" class="form-control" id="inputEmail"
+                                                               placeholder="邮箱" v-model="modify_email">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label" for="inputRole">选择角色</label>
+                                                    <div class="col-sm-10">
+                                                        <select class="form-control col-sm-8" id="inputRole"
+                                                                v-model="modify_role_id">
+                                                            <option v-for="line in role_list" value="${line.role_id}"
+                                                                    v-text="line.role_name"
+                                                                    v-if="line.role_id != modify_role_id"></option>
+                                                            <option v-for="line in role_list" value="${line.role_id}"
+                                                                    v-text="line.role_name"
+                                                                    v-if="line.role_id == modify_role_id"
+                                                                    selected></option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div style="color:red;text-align:center" v-if="errMsg2"
+                                                 v-text="errMsg2"></div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                                            </button>
+                                            <button type="button" class="btn btn-primary" @click="modify_user()">提交
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
+{% block bottom_js %}
+    <script>
+        $(function () {
+            $('#search_keyword').keyup(function (event) {
+                let last = event.timeStamp;
+                setTimeout(function () {
+                    if (last - event.timeStamp === 0) {
+                        $('#user_search_form').submit();
+                    }
+                }, 500);
+
+            });
+
+            $('#search_keyword').val("").focus().val(({{ search|tojson }}));
+        });
+
+        window.onload = function () {
+            if (({{ menu|tojson }}) in {
+                'user_list': '',
+                'role_list': '',
+                'permission_list': ''
+            }) {
+                $('#permission_manage').addClass('active').addClass('menu-open');
+            } else {
+                $('#permission_manage').removeClass('active').removeClass('menu-open');
+            }
+            load_role_list();
+        };
+        data = {
+            search: '',
+            username: '',
+            fullname: '',
+            password: '',
+            password2: '',
+            email: '',
+            role_name: '',
+            status: '',
+            errMsg: '',
+            role_list: [],
+            modify_user_id: '',
+            modify_username: '',
+            modify_fullname: '',
+            modify_email: '',
+            modify_role_id: '',
+            errMsg2: '',
+        };
+
+        function check_search() {
+            if ($.trim(data.search).length === 0) {
+                return false;
+            }
+        }
+
+        new Vue({
+            el: '.list',
+            data: data,
+            methods: {
+                add_user: function () {
+                    let username = $.trim(this.username);
+                    let fullname = $.trim(this.fullname);
+                    let password = $.trim(this.password);
+                    let password2 = $.trim(this.password2);
+                    let email = $.trim(this.email);
+                    let role_name = this.role_name;
+                    let status = this.status;
+                    add_user(username, fullname, password, password2, email, role_name, status);
+                },
+                show_delete_user_modal: function (user_id) {
+                    this.user_id = user_id;
+                    $('.delete-user-modal').modal('show');
+                },
+                delete_user: function () {
+                    delete_user(this.user_id);
+                },
+                modify_user: function () {
+                    let user_id = this.modify_user_id;
+                    let username = $.trim(this.modify_username);
+                    let fullname = $.trim(this.modify_fullname);
+                    let email = $.trim(this.modify_email);
+                    let role_id = this.modify_role_id;
+                    modify_user(user_id, username, fullname, email, role_id);
+                },
+            },
+        });
+
+        function modify_user(user_id, username, fullname, email, role_id) {
+            if (!username) {
+                data.errMsg2 = '用户名不可设置为空！';
+                return;
+            }
+            if (!email) {
+                data.errMsg2 = '邮箱不可设置为空！';
+                return;
+            }
+            if (!fullname) {
+                data.errMsg2 = '姓名不可设置为空！';
+                return;
+            }
+            $.ajax({
+                url: "{{url_for('api_user.api_user_user')}}",
+                data: {
+                    'user_id': user_id,
+                    'username': username,
+                    'fullname': fullname,
+                    'email': email,
+                    'role_id': role_id,
+                },
+                timeout: 10000,
+                type: 'put',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '修改成功',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.modify-user-modal').modal('hide');
+                    } else {
+                        swal("修改失败", response.errMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function delete_user(user_id) {
+            $.ajax({
+                url: "{{url_for('api_user.api_user_user')}}",
+                data: {
+                    'user_id': user_id,
+                },
+                timeout: 10000,
+                type: 'delete',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '删除成功',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.delete-user-modal').modal('hide');
+                    } else {
+                        swal("删除失败", response.errMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function add_user(username, fullname, password, password2, email, role_name, status) {
+            if (!username) {
+                data.errMsg = '用户名不能为空！';
+                return;
+            }
+            if (!password) {
+                data.errMsg = '密码不能为空！';
+                return;
+            }
+            if (!password2) {
+                data.errMsg = '密码确认不能为空！';
+                return;
+            }
+            if (password !== password2) {
+                data.errMsg = '两次密码不一致，请检查！';
+                return;
+            }
+            if (!email) {
+                data.errMsg = '用户邮箱不能为空！';
+                return;
+            }
+            if (!role_name) {
+                data.errMsg = '请选择用户角色！';
+                return;
+            }
+
+            $.ajax({
+                url: "{{url_for('api_user.api_user_user')}}",
+                data: {
+                    'username': username,
+                    'fullname': fullname,
+                    'password': password,
+                    'email': email,
+                    'role_id': role_name,
+                    'status': status,
+                },
+                timeout: 10000,
+                type: 'post',
+                success: function (response) {
+                    if (response.resCode === 1) {
+                        swal({
+                            type: 'success',
+                            title: '添加成功',
+                            showConfirmButton: true,
+                        }).then(function () {
+                            window.location.reload();
+                        });
+                        $('.add-user-modal').modal('hide');
+                    } else {
+                        swal("添加失败", response.errMsg, "error");
+                    }
+                }
+            })
+        }
+
+        function load_role_list() {
+            $.ajax({
+                url: "{{url_for('api_user.api_user_role_list')}}",
+                data: {
+                    'type': 'get_role_list'},
+                timeout: 10000,
+                type: 'post',
+                success: function (response) {
+                    data.role_list = response;
+                }
+            })
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,100 @@
+<aside class="main-sidebar">
+    <section class="sidebar">
+        <div class="user-panel">
+            <div class="pull-left image">
+                {% if current_user.role.name == 'Admin' %}
+                    <img src="{{ url_for('static', filename='image/avatar3.png') }}" class="img-circle" alt="User Image">
+                {% elif current_user.role.name == 'Ops' %}
+                    <img src="{{ url_for('static', filename='image/avatar2.png') }}" class="img-circle" alt="User Image">
+                {% else %}
+                    <img src="{{ url_for('static', filename='image/avatar1.png') }}" class="img-circle" alt="User Image">
+                {% endif %}
+            </div>
+            <div class="pull-left info">
+                <p>{{ current_user.name }}</p>
+                <a href="#"><i class="fa fa-circle text-success"></i> Online</a>
+            </div>
+        </div>
+        <ul class="sidebar-menu" data-widget="tree">
+            <li id="dashboard">
+                <a href="{{ url_for('index.index') }}">
+                    <i class="fa fa-dashboard"></i> <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="treeview" id="host_manage">
+                <a href="#">
+                    <i class="fa fa-tv"></i>
+                    <span> 主机管理 </span>
+                    <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+                </a>
+                <ul class="treeview-menu">
+                    <li id="host_list" {% if menu == 'host_list' %} class="active" {% endif %}>
+                        <a href="{{ url_for('assets.assets_host') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 主机信息</a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="treeview" id="monitor">
+                <a href="#">
+                    <i class="fa fa-gears"></i>
+                    <span> 监控管理 </span>
+                    <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+                </a>
+                <ul class="treeview-menu">
+                    <li id="monitor_domain" {% if menu == 'monitor_domain' %} class="active" {% endif %}>
+                        <a href="{{ url_for('monitor.monitor_domain') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 监控域名管理 </a>
+                    </li>
+                    <li id="monitor_tcp_connect_probe" {% if menu == 'monitor_tcp_connect_probe' %} class="active" {% endif %}>
+                        <a href="{{ url_for('monitor.monitor_tcp_connect_probe') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 服务端口监控
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            {% if current_user.role.name == 'Admin' %}
+                <li class="treeview" id="asset_manage">
+                    <a href="#">
+                        <i class="fa fa-bell-o"></i>
+                        <span>管理员配置</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li id="ip_pool" {% if menu == 'ip_pool_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('assets.assets_ip_pool') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> IP地址池管理</a>
+                        </li>
+                        <li id="ip_pool" {% if menu == 'service_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('assets.assets_service') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i>
+                                服务管理</a>
+                        </li>
+                        <li id="ip_pool" {% if menu == 'department_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('assets.assets_department') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 部门管理</a>
+                        </li>
+                    </ul>
+                </li>
+            {% endif %}
+
+            {% if current_user.role.name in ['Admin', 'Ops'] %}
+                <li class="treeview" id="permission_manage">
+                    <a href="#">
+                        <i class="fa fa-user-circle"></i>
+                        <span>用户权限管理</span>
+                        <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+                    </a>
+                    <ul class="treeview-menu">
+                       <li {% if menu == 'role_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('user.user_role') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 角色管理</a>
+                        </li>
+                        <li {% if menu == 'user_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('user.user_user') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 用户管理</a>
+                        </li>
+                        <li {% if menu == 'permission_list' %} class="active" {% endif %}>
+                            <a href="{{ url_for('user.user_permission') }}" style="font-size: 13px"><i class="fa fa-minus-square"></i> 权限列表</a>
+                        </li>
+                    </ul>
+                </li>
+            {% endif %}
+        </ul>
+    </section>
+</aside>
